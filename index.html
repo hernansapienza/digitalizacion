@@ -22,7 +22,7 @@
             margin: 0; display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* --- SIDEBAR --- */
+        /* --- NAVEGACIÓN --- */
         nav {
             width: var(--sidebar-width); background-color: #020617; border-right: 1px solid #1e293b;
             display: flex; flex-direction: column; padding: 20px 0; z-index: 10;
@@ -31,13 +31,13 @@
         .nav-link { padding: 15px 20px; color: #94a3b8; text-decoration: none; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; }
         .nav-link:hover, .nav-link.active { background-color: #1e293b; color: white; border-left-color: var(--accent); }
 
-        /* --- CONTENIDO --- */
+        /* --- CONTENIDO PRINCIPAL --- */
         main { flex-grow: 1; overflow-y: auto; padding: 25px; }
         .section { display: none; }
         .section.active { display: block; animation: fadeIn 0.4s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* --- FILTROS --- */
+        /* --- BARRA DE FILTROS --- */
         .filter-bar {
             background: var(--bg-card); padding: 15px 20px; border-radius: 8px;
             margin-bottom: 25px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;
@@ -49,7 +49,7 @@
         }
         .custom-date { display: none; align-items: center; gap: 10px; }
 
-        /* --- TARJETAS KPI --- */
+        /* --- TARJETAS INDICADORES --- */
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .kpi-card { background: var(--bg-card); padding: 20px; border-radius: 8px; border-top: 3px solid var(--accent); }
         .kpi-title { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
@@ -58,19 +58,18 @@
         .trend-up { color: var(--success); }
         .trend-down { color: var(--danger); }
 
-        /* --- GRÁFICOS Y TABLAS --- */
+        /* --- CONTENEDORES DE GRÁFICOS Y TABLAS --- */
         .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         .full-width { grid-column: 1 / -1; }
         .box { background: var(--bg-card); padding: 20px; border-radius: 8px; height: 350px; display: flex; flex-direction: column; }
         .box-title { color: #cbd5e1; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px; flex-shrink: 0; }
-        .chart-wrapper { flex-grow: 1; position: relative; min-height: 0; } /* Para que Chart.js respete el tamaño */
+        .chart-wrapper { flex-grow: 1; position: relative; min-height: 0; } 
         
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
         th { background: #0f172a; color: var(--accent); padding: 10px; border-bottom: 2px solid #334155; position: sticky; top: 0; }
         td { padding: 8px 10px; border-bottom: 1px solid #334155; color: #cbd5e1; }
         .table-container { flex-grow: 1; overflow-y: auto; }
         
-        /* Estilos para tabla agrupada */
         .row-gerencia td { background-color: rgba(56, 189, 248, 0.1); color: var(--accent); font-weight: bold; }
         .row-area td:first-child { padding-left: 25px; color: #64748b; font-size: 0.8rem; }
 
@@ -86,7 +85,7 @@
 </head>
 <body>
 
-    <div id="loader">CARGANDO BASES DE DATOS... <br><span style="font-size:0.8rem; color:#94a3b8; margin-top:10px;" id="loader-msg">Sincronizando información...</span></div>
+    <div id="loader">CARGANDO MOTOR ANALÍTICO... <br><span style="font-size:0.8rem; color:#94a3b8; margin-top:10px;" id="loader-msg">Procesando y normalizando bases de datos...</span></div>
 
     <nav>
         <div class="brand">📊 NOC Analytics</div>
@@ -108,14 +107,14 @@
             </div>
             
             <div id="fechas-personalizadas" class="custom-date">
-                <input type="date" id="fecha-desde" onchange="renderizarVistas()">
+                <input type="date" id="fecha-desde" onchange="ejecutarMotorVisual()">
                 <span style="color:#94a3b8;">hasta</span>
-                <input type="date" id="fecha-hasta" onchange="renderizarVistas()">
+                <input type="date" id="fecha-hasta" onchange="ejecutarMotorVisual()">
             </div>
 
             <div id="contenedor-usuario" style="display: none; margin-left: 15px;">
                 <label style="color:#94a3b8; font-size:0.9rem; margin-right:5px;">Operador:</label>
-                <select id="filtro-usuario" onchange="renderizarVistas()">
+                <select id="filtro-usuario" onchange="ejecutarMotorVisual()">
                     <option value="todos">Todos los Operadores</option>
                 </select>
             </div>
@@ -129,7 +128,7 @@
                     <div class="kpi-trend" id="kpi-img-trend">-</div>
                 </div>
                 <div class="kpi-card" style="border-color: var(--accent);">
-                    <div class="kpi-title">Promedio Diario (Efectivo)</div>
+                    <div class="kpi-title">Promedio Diario (Días Efectivos)</div>
                     <div class="kpi-value" id="kpi-img-promedio">0</div>
                 </div>
             </div>
@@ -177,12 +176,12 @@
             </div>
 
             <div class="box full-width" style="height: 380px; margin-bottom: 20px;">
-                <h3 class="box-title">Evolución de Tareas en el Periodo</h3>
+                <h3 class="box-title">Evolución de Tareas en el Periodo Seleccionado</h3>
                 <div class="chart-wrapper"><canvas id="chart-lineas-tareas"></canvas></div>
             </div>
 
             <div class="box full-width" style="height: auto;">
-                <h3 class="box-title">Ranking de Operadores (Periodo Seleccionado)</h3>
+                <h3 class="box-title">Ranking de Operadores (Global del Periodo)</h3>
                 <div class="ranking-grid">
                     <div class="rank-box"><div class="rank-title" style="color:var(--success)">🥇 Digitalizado</div><div id="rank-dig"></div></div>
                     <div class="rank-box"><div class="rank-title" style="color:var(--warning)">🥇 Auditado</div><div id="rank-audi"></div></div>
@@ -194,27 +193,29 @@
     </main>
 
     <script>
-        // Registrar plugin de etiquetas para el anillo
         Chart.register(ChartDataLabels);
 
         // =====================================================================
         // ⚠️ PEGA AQUÍ TUS ENLACES CSV
         // =====================================================================
-        const URL_HOJA_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
-        const URL_HOJA_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
+        const URL_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
+        const URL_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
         // =====================================================================
 
-        let d1 = [], d2 = [], charts = {};
+        // BASES DE DATOS APLANADAS
+        let eventosOperadores = []; 
+        let eventosGerencias = [];
         let mapaNombres = {};
+        let charts = {};
 
-        window.onload = () => cargarDatos();
+        window.onload = () => inicializarBases();
 
+        // --- FUNCIONES DE LIMPIEZA Y TRANSFORMACIÓN ---
         function normalizarTexto(txt) {
             if(!txt) return "";
             return txt.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/gi, "n").toLowerCase();
         }
 
-        // Convertir cualquier formato raro de número a entero puro
         function limpiarNumero(val) {
             if(!val) return 0;
             if(typeof val === 'number') return val;
@@ -224,54 +225,105 @@
         }
 
         function registrarNombre(nombreOriginal) {
-            if(!nombreOriginal) return null;
+            if(!nombreOriginal || nombreOriginal.trim() === "") return null;
             const norm = normalizarTexto(nombreOriginal);
-            if(norm === "") return null;
             if(!mapaNombres[norm]) mapaNombres[norm] = nombreOriginal.trim();
             return norm;
         }
 
         function procesarFecha(fechaStr) {
             if(!fechaStr) return null;
-            const p = fechaStr.split('/');
-            if(p.length === 3) return new Date(p[2], p[1]-1, p[0]); // DD/MM/YYYY
+            let p;
+            if(fechaStr.includes('/')) {
+                p = fechaStr.split('/');
+                return new Date(p[2], p[1]-1, p[0]); // Interpreta DD/MM/YYYY
+            } else if (fechaStr.includes('-')) {
+                p = fechaStr.split('-');
+                return new Date(p[0], p[1]-1, p[2]); // Interpreta YYYY-MM-DD
+            }
             return null;
         }
 
-        function cargarDatos() {
+        // --- NUEVO MOTOR DE LECTURA (EXTRACCIÓN DE EVENTOS) ---
+        function inicializarBases() {
             if(URL_HOJA_1.includes("TU_ENLACE")) {
-                document.getElementById('loader-msg').innerText = "⚠️ Faltan enlaces en el código."; return;
+                document.getElementById('loader-msg').innerText = "⚠️ Error: Faltan los enlaces de tus Google Sheets en el código."; return;
             }
+
             Papa.parse(URL_HOJA_1, { download: true, header: true, skipEmptyLines: true, complete: (r1) => {
-                d1 = r1.data;
                 Papa.parse(URL_HOJA_2, { download: true, header: true, skipEmptyLines: true, complete: (r2) => {
-                    d2 = r2.data;
-                    preprocesarEstructuras();
+                    
+                    const usuariosSet = new Set();
+
+                    // PROCESAR HOJA 1: Crear un "Evento" por cada tarea detectada, ignorando la columna global de "Status"
+                    r1.data.forEach(fila => {
+                        // Evento Digitalizado
+                        if (fila.user && fila.fecha_digitalizado) {
+                            let fObj = procesarFecha(fila.fecha_digitalizado);
+                            let cant = limpiarNumero(fila.ima_dig);
+                            let userNorm = registrarNombre(fila.user);
+                            if (fObj && cant > 0 && userNorm) {
+                                eventosOperadores.push({ tarea: 'digitalizado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
+                                usuariosSet.add(userNorm);
+                            }
+                        }
+                        // Evento Auditado
+                        if (fila.auditor && fila.fecha_auditado) {
+                            let fObj = procesarFecha(fila.fecha_auditado);
+                            let cant = limpiarNumero(fila.ima_audi);
+                            let userNorm = registrarNombre(fila.auditor);
+                            if (fObj && cant > 0 && userNorm) {
+                                eventosOperadores.push({ tarea: 'auditado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
+                                usuariosSet.add(userNorm);
+                            }
+                        }
+                        // Evento Preparado
+                        if (fila.preparador && fila.fecha_preparado) {
+                            let fObj = procesarFecha(fila.fecha_preparado);
+                            let cant = limpiarNumero(fila.hojas_prep);
+                            let userNorm = registrarNombre(fila.preparador);
+                            if (fObj && cant > 0 && userNorm) {
+                                eventosOperadores.push({ tarea: 'preparado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
+                                usuariosSet.add(userNorm);
+                            }
+                        }
+                        // Evento Rearmado
+                        if (fila.rearmador && fila.fecha_rearmado) {
+                            let fObj = procesarFecha(fila.fecha_rearmado);
+                            let cant = limpiarNumero(fila.hojas_prep);
+                            let userNorm = registrarNombre(fila.rearmador);
+                            if (fObj && cant > 0 && userNorm) {
+                                eventosOperadores.push({ tarea: 'rearmado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
+                                usuariosSet.add(userNorm);
+                            }
+                        }
+                    });
+
+                    // PROCESAR HOJA 2: Eventos Gerenciales
+                    r2.data.forEach(fila => {
+                        let fObj = procesarFecha(fila.fecha_digitalizado);
+                        let cant = limpiarNumero(fila.ima_dig);
+                        if(fObj && cant > 0) {
+                            eventosGerencias.push({
+                                fechaObj: fObj,
+                                gerencia: fila.gerencia ? fila.gerencia.trim() : 'Sin Gerencia',
+                                area: fila.area_solicitante ? fila.area_solicitante.trim() : 'Sin Área',
+                                cantidad: cant
+                            });
+                        }
+                    });
+
+                    // Cargar selector de usuarios
+                    const sel = document.getElementById('filtro-usuario');
+                    Array.from(usuariosSet).sort().forEach(u => { sel.innerHTML += `<option value="${u}">${mapaNombres[u]}</option>`; });
+
                     document.getElementById('loader').style.display = 'none';
                     gestionarFiltros(); 
                 }});
             }});
         }
 
-        function preprocesarEstructuras() {
-            const usuariosSet = new Set();
-            d1.forEach(f => {
-                f._objFecha = procesarFecha(f.fecha_digitalizado || f.fecha_auditado || f.fecha_preparado || f.fecha_rearmado);
-                f._status = normalizarTexto(f.status);
-                if(f.user) usuariosSet.add(registrarNombre(f.user));
-                if(f.auditor) usuariosSet.add(registrarNombre(f.auditor));
-                if(f.preparador) usuariosSet.add(registrarNombre(f.preparador));
-                if(f.rearmador) usuariosSet.add(registrarNombre(f.rearmador));
-            });
-
-            d2.forEach(f => { f._objFecha = procesarFecha(f.fecha_digitalizado); });
-
-            const sel = document.getElementById('filtro-usuario');
-            Array.from(usuariosSet).filter(Boolean).sort().forEach(u => {
-                sel.innerHTML += `<option value="${u}">${mapaNombres[u]}</option>`;
-            });
-        }
-
+        // --- CONTROLADORES DE INTERFAZ ---
         function cambiarSeccion(id) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -285,81 +337,66 @@
             else {
                 barra.style.display = 'flex';
                 contUser.style.display = (id === 'seccion-detalle') ? 'block' : 'none';
-                renderizarVistas();
+                ejecutarMotorVisual();
             }
         }
 
         function gestionarFiltros() {
             const val = document.getElementById('filtro-periodo').value;
             document.getElementById('fechas-personalizadas').style.display = (val === 'personalizado') ? 'flex' : 'none';
-            renderizarVistas();
+            ejecutarMotorVisual();
         }
 
-        // LÓGICA DE COMPARACIÓN EXACTA
         function obtenerRangosFecha() {
             const tipo = document.getElementById('filtro-periodo').value;
             const hoy = new Date(); hoy.setHours(0,0,0,0);
-            let inicio, fin, inicioPrev, finPrev;
+            let iAct, fAct, iPrev, fPrev;
 
             if (tipo === 'este_mes') {
-                inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-                fin = hoy;
-                // Compara con mismos días calendario transcurridos del mes pasado
-                inicioPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
-                finPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, hoy.getDate());
-            } 
-            else if (tipo === 'mes_anterior') {
-                inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
-                fin = new Date(hoy.getFullYear(), hoy.getMonth(), 0); 
-                // Compara Mes Completo vs Mes Completo (sin importar si uno tiene 31 y otro 30 días)
-                inicioPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
-                finPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 0);
-            }
-            else if (tipo === 'ultimos_3_meses') {
-                inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate());
-                fin = hoy;
-                inicioPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 6, hoy.getDate());
-                finPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate() - 1);
-            }
-            else { // Personalizado
-                const d = document.getElementById('fecha-desde').value;
-                const h = document.getElementById('fecha-hasta').value;
+                iAct = new Date(hoy.getFullYear(), hoy.getMonth(), 1); fAct = hoy;
+                iPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); fPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, hoy.getDate());
+            } else if (tipo === 'mes_anterior') {
+                iAct = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); fAct = new Date(hoy.getFullYear(), hoy.getMonth(), 0); 
+                iPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1); fPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 0);
+            } else if (tipo === 'ultimos_3_meses') {
+                iAct = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate()); fAct = hoy;
+                iPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 6, hoy.getDate()); fPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate() - 1);
+            } else {
+                const d = document.getElementById('fecha-desde').value; const h = document.getElementById('fecha-hasta').value;
                 if(!d || !h) return null; 
-                inicio = new Date(d + "T00:00:00"); fin = new Date(h + "T00:00:00");
-                const diasDif = Math.floor((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
-                finPrev = new Date(inicio); finPrev.setDate(finPrev.getDate() - 1);
-                inicioPrev = new Date(finPrev); inicioPrev.setDate(inicioPrev.getDate() - diasDif + 1);
+                iAct = new Date(d + "T00:00:00"); fAct = new Date(h + "T00:00:00");
+                const diasDif = Math.floor((fAct - iAct) / 86400000) + 1;
+                fPrev = new Date(iAct); fPrev.setDate(fPrev.getDate() - 1);
+                iPrev = new Date(fPrev); iPrev.setDate(iPrev.getDate() - diasDif + 1);
             }
-            return { actual: {i: inicio, f: fin}, previo: {i: inicioPrev, f: finPrev} };
+            return { act: {i: iAct, f: fAct}, prev: {i: iPrev, f: fPrev} };
         }
 
-        function renderizarVistas() {
+        function ejecutarMotorVisual() {
             const seccion = document.querySelector('.section.active').id;
             if(seccion === 'seccion-anual') return;
 
             const rangos = obtenerRangosFecha();
             if(!rangos) return; 
 
-            const f1_actual = d1.filter(f => f._objFecha >= rangos.actual.i && f._objFecha <= rangos.actual.f);
-            const f1_previo = d1.filter(f => f._objFecha >= rangos.previo.i && f._objFecha <= rangos.previo.f);
-            const f2_actual = d2.filter(f => f._objFecha >= rangos.actual.i && f._objFecha <= rangos.actual.f);
-            const f2_previo = d2.filter(f => f._objFecha >= rangos.previo.i && f._objFecha <= rangos.previo.f);
-
-            if(seccion === 'seccion-mensual') renderMensual(f1_actual, f2_actual, f2_previo, rangos);
-            if(seccion === 'seccion-detalle') renderDetalle(f1_actual);
+            if(seccion === 'seccion-mensual') {
+                const dataAct = eventosGerencias.filter(e => e.fechaObj >= rangos.act.i && e.fechaObj <= rangos.act.f);
+                const dataPrev = eventosGerencias.filter(e => e.fechaObj >= rangos.prev.i && e.fechaObj <= rangos.prev.f);
+                renderMensual(dataAct, dataPrev);
+            }
+            if(seccion === 'seccion-detalle') {
+                const dataOp = eventosOperadores.filter(e => e.fechaObj >= rangos.act.i && e.fechaObj <= rangos.act.f);
+                renderDetalle(dataOp);
+            }
         }
 
-        function renderMensual(d1_act, d2_act, d2_prev, rangos) {
-            // KPI Digitalizado
+        // --- RENDERIZADO REPORTE MENSUAL ---
+        function renderMensual(dataAct, dataPrev) {
             let digAct = 0, digPrev = 0;
-            const fechasConProduccion = new Set(); // Para Promedio Efectivo
+            const fechasConProduccion = new Set(); 
 
-            d2_act.forEach(f => { 
-                let num = limpiarNumero(f.ima_dig);
-                digAct += num; 
-                if(num > 0) fechasConProduccion.add(f._objFecha.getTime());
-            });
-            d2_prev.forEach(f => digPrev += limpiarNumero(f.ima_dig));
+            dataAct.forEach(e => { digAct += e.cantidad; fechasConProduccion.add(e.fechaObj.getTime()); });
+            dataPrev.forEach(e => { digPrev += e.cantidad; });
 
             document.getElementById('kpi-img-total').innerText = digAct.toLocaleString('es-AR');
             const dif = digPrev === 0 ? (digAct > 0 ? 100 : 0) : ((digAct - digPrev) / digPrev) * 100;
@@ -367,226 +404,32 @@
             elTrend.innerHTML = dif >= 0 ? `▲ +${dif.toFixed(1)}% vs periodo ant.` : `▼ ${dif.toFixed(1)}% vs periodo ant.`;
             elTrend.className = dif >= 0 ? 'kpi-trend trend-up' : 'kpi-trend trend-down';
 
-            // KPI Promedio (Solo días trabajados)
             const diasTrabajados = Math.max(1, fechasConProduccion.size);
             document.getElementById('kpi-img-promedio').innerText = Math.round(digAct / diasTrabajados).toLocaleString('es-AR');
 
-            // TABLA AGRUPADA (Gerencia -> Área)
             const gerenciasData = {}; 
             const chartGenObj = {};
 
-            d2_act.forEach(f => {
-                const g = f.gerencia ? f.gerencia.trim() : 'Sin Gerencia';
-                const a = f.area_solicitante ? f.area_solicitante.trim() : 'Sin Área';
-                const cant = limpiarNumero(f.ima_dig);
-                
-                if(!gerenciasData[g]) gerenciasData[g] = { total: 0, areas: {} };
-                gerenciasData[g].total += cant;
-                gerenciasData[g].areas[a] = (gerenciasData[g].areas[a] || 0) + cant;
-                chartGenObj[g] = (chartGenObj[g] || 0) + cant;
+            dataAct.forEach(e => {
+                if(!gerenciasData[e.gerencia]) gerenciasData[e.gerencia] = { total: 0, areas: {} };
+                gerenciasData[e.gerencia].total += e.cantidad;
+                gerenciasData[e.gerencia].areas[e.area] = (gerenciasData[e.gerencia].areas[e.area] || 0) + e.cantidad;
+                chartGenObj[e.gerencia] = (chartGenObj[e.gerencia] || 0) + e.cantidad;
             });
 
             const tbody = document.querySelector('#tabla-gerencias tbody');
             let htmlTabla = '';
             Object.keys(gerenciasData).sort((a,b) => gerenciasData[b].total - gerenciasData[a].total).forEach(g => {
-                // Fila principal Gerencia
                 htmlTabla += `<tr class="row-gerencia"><td colspan="2">${g}</td><td>${gerenciasData[g].total.toLocaleString('es-AR')}</td></tr>`;
-                // Sub-filas de Áreas
                 Object.keys(gerenciasData[g].areas).sort((a,b) => gerenciasData[g].areas[b] - gerenciasData[g].areas[a]).forEach(a => {
                     htmlTabla += `<tr class="row-area"><td>└</td><td>${a}</td><td>${gerenciasData[g].areas[a].toLocaleString('es-AR')}</td></tr>`;
                 });
             });
             tbody.innerHTML = htmlTabla;
 
-            // Doughnut con %
             crearGrafico('chart-doughnut-gerencia', 'doughnut', Object.keys(chartGenObj), [{data: Object.values(chartGenObj)}]);
 
-            // Gráfico Barras Apiladas (X Ordenado Cronológicamente YYYY-MM-DD)
             const diasObj = {}; const gerenciasUnicas = Object.keys(chartGenObj);
-            d2_act.forEach(f => {
-                const g = f.gerencia ? f.gerencia.trim() : 'Sin Gerencia';
-                // Usamos formato YYYY-MM-DD como clave para ordenar bien
-                const fKey = `${f._objFecha.getFullYear()}-${String(f._objFecha.getMonth()+1).padStart(2,'0')}-${String(f._objFecha.getDate()).padStart(2,'0')}`;
-                if(!diasObj[fKey]) { diasObj[fKey] = {}; gerenciasUnicas.forEach(gu => diasObj[fKey][gu]=0); }
-                diasObj[fKey][g] += limpiarNumero(f.ima_dig);
-            });
-
-            const clavesOrdenadas = Object.keys(diasObj).sort(); // Orden cronológico garantizado
-            const labelsVisuales = clavesOrdenadas.map(k => {
-                const parts = k.split('-'); return `${parts[2]}/${parts[1]}`; // Convertir a DD/MM
-            });
-
-            const datasets = gerenciasUnicas.map((g, i) => {
-                const colores = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
-                return {
-                    label: g, backgroundColor: colores[i % colores.length],
-                    data: clavesOrdenadas.map(k => diasObj[k][g])
-                };
-            });
-            crearGrafico('chart-barras-diarias', 'bar', labelsVisuales, datasets, true, true);
-        }
-
-        function renderAnual() {
-            const hoy = new Date();
-            const fin12m = new Date(hoy.getFullYear(), hoy.getMonth(), 0); 
-            const ini12m = new Date(hoy.getFullYear(), hoy.getMonth() - 12, 1);
-
-            const d2_12m = d2.filter(f => f._objFecha >= ini12m && f._objFecha <= fin12m);
-            const mesesObj = {}; const chartGen12m = {}; const gerenciasUnicas = new Set();
-
-            d2_12m.forEach(f => {
-                const mesStr = f._objFecha.toLocaleDateString('es-AR', {year:'numeric', month:'short'});
-                const g = f.gerencia ? f.gerencia.trim() : 'Sin Gerencia';
-                gerenciasUnicas.add(g);
-                
-                if(!mesesObj[mesStr]) { mesesObj[mesStr] = { total: 0, gerencias: {} }; }
-                if(!mesesObj[mesStr].gerencias[g]) mesesObj[mesStr].gerencias[g] = 0;
-
-                const c = limpiarNumero(f.ima_dig);
-                mesesObj[mesStr].total += c;
-                mesesObj[mesStr].gerencias[g] += c;
-            });
-
-            const labelsMeses = [];
-            for(let i=12; i>0; i--) {
-                const m = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-                labelsMeses.push(m.toLocaleDateString('es-AR', {year:'numeric', month:'short'}));
-            }
-
-            const dataLinea = labelsMeses.map(m => mesesObj[m] ? mesesObj[m].total : 0);
-            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{
-                label: 'Imágenes', data: dataLinea, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', fill: true, tension: 0.3
-            }]);
-
-            const arGerencias = Array.from(gerenciasUnicas);
-            const datasets12m = arGerencias.map((g, i) => {
-                const colores = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
-                return {
-                    label: g, backgroundColor: colores[i % colores.length],
-                    data: labelsMeses.map(m => (mesesObj[m] && mesesObj[m].gerencias[g]) ? mesesObj[m].gerencias[g] : 0)
-                };
-            });
-            crearGrafico('chart-barras-12m', 'bar', labelsMeses, datasets12m, true);
-        }
-
-        function renderDetalle(datos1) {
-            const usuSel = document.getElementById('filtro-usuario').value;
-            let kDig=0, kAudi=0, kPrep=0, kRear=0;
-            const tiempos = {}; const rankings = { dig: {}, audi: {}, prep: {}, rear: {} };
-
-            datos1.forEach(f => {
-                const status = f._status;
-                const fStr = `${f._objFecha.getFullYear()}-${String(f._objFecha.getMonth()+1).padStart(2,'0')}-${String(f._objFecha.getDate()).padStart(2,'0')}`;
-                
-                if(!tiempos[fStr]) tiempos[fStr] = {dig:0, audi:0, prep:0, rear:0};
-
-                const u_dig = registrarNombre(f.user);
-                const u_audi = registrarNombre(f.auditor);
-                const u_prep = registrarNombre(f.preparador);
-                const u_rear = registrarNombre(f.rearmador);
-
-                if(status === 'digitalizado' && u_dig) {
-                    let cant = limpiarNumero(f.ima_dig);
-                    rankings.dig[u_dig] = (rankings.dig[u_dig] || 0) + cant;
-                    if(usuSel === 'todos' || usuSel === u_dig) { kDig += cant; tiempos[fStr].dig += cant; }
-                }
-                // Corregido: Lectura forzada de la columna de auditoría limpiando formato
-                else if(status === 'auditado' && u_audi) {
-                    let cant = limpiarNumero(f.ima_audi);
-                    rankings.audi[u_audi] = (rankings.audi[u_audi] || 0) + cant;
-                    if(usuSel === 'todos' || usuSel === u_audi) { kAudi += cant; tiempos[fStr].audi += cant; }
-                }
-                else if(status === 'preparado' && u_prep) {
-                    let cant = limpiarNumero(f.hojas_prep);
-                    rankings.prep[u_prep] = (rankings.prep[u_prep] || 0) + cant;
-                    if(usuSel === 'todos' || usuSel === u_prep) { kPrep += cant; tiempos[fStr].prep += cant; }
-                }
-                else if(status === 'rearmado' && u_rear) {
-                    let cant = limpiarNumero(f.hojas_prep); 
-                    rankings.rear[u_rear] = (rankings.rear[u_rear] || 0) + cant;
-                    if(usuSel === 'todos' || usuSel === u_rear) { kRear += cant; tiempos[fStr].rear += cant; }
-                }
-            });
-
-            document.getElementById('det-dig').innerText = kDig.toLocaleString('es-AR');
-            document.getElementById('det-audi').innerText = kAudi.toLocaleString('es-AR');
-            document.getElementById('det-prep').innerText = kPrep.toLocaleString('es-AR');
-            document.getElementById('det-rear').innerText = kRear.toLocaleString('es-AR');
-
-            const clavesOrdenadas = Object.keys(tiempos).sort();
-            const labelsVisuales = clavesOrdenadas.map(k => { const p = k.split('-'); return `${p[2]}/${p[1]}`; });
-
-            crearGrafico('chart-lineas-tareas', 'line', labelsVisuales, [
-                {label: 'Digitalizado', data: clavesOrdenadas.map(d => tiempos[d].dig), borderColor: '#10b981', tension: 0.3},
-                {label: 'Auditado', data: clavesOrdenadas.map(d => tiempos[d].audi), borderColor: '#f59e0b', tension: 0.3},
-                {label: 'Preparado', data: clavesOrdenadas.map(d => tiempos[d].prep), borderColor: '#38bdf8', tension: 0.3},
-                {label: 'Rearmado', data: clavesOrdenadas.map(d => tiempos[d].rear), borderColor: '#8b5cf6', tension: 0.3}
-            ]);
-
-            const armarTop = (objRank, idDiv) => {
-                let html = '';
-                Object.entries(objRank).sort((a,b)=>b[1]-a[1]).slice(0, 10).forEach((item, idx) => {
-                    html += `<div class="rank-item"><span>${idx+1}. ${mapaNombres[item[0]]}</span> <span>${item[1].toLocaleString('es-AR')}</span></div>`;
-                });
-                document.getElementById(idDiv).innerHTML = html || '<div style="text-align:center;color:#64748b;font-size:0.8rem;">Sin datos</div>';
-            };
-            armarTop(rankings.dig, 'rank-dig');
-            armarTop(rankings.audi, 'rank-audi');
-            armarTop(rankings.prep, 'rank-prep');
-            armarTop(rankings.rear, 'rank-rear');
-        }
-
-        // --- GENERADOR CENTRAL DE GRÁFICOS ---
-        function crearGrafico(idCanvas, tipo, etiquetas, datasets, apilado = false, mostrarTotal = false) {
-            if (charts[idCanvas]) charts[idCanvas].destroy();
-            const ctx = document.getElementById(idCanvas).getContext('2d');
-            
-            const paleta = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
-            datasets.forEach((ds, i) => { if(!ds.backgroundColor && tipo !== 'line') ds.backgroundColor = paleta.slice(0, ds.data.length); });
-
-            const conf = {
-                type: tipo, data: { labels: etiquetas, datasets: datasets },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: tipo==='doughnut'?'right':'top', labels: {color:'#94a3b8'} },
-                        // Configuración de los % dentro del Doughnut
-                        datalabels: {
-                            display: tipo === 'doughnut', // Solo muestra etiquetas en el anillo
-                            color: '#ffffff', font: { weight: 'bold', size: 12 },
-                            formatter: (value, ctx) => {
-                                if(tipo !== 'doughnut') return null;
-                                let sum = 0;
-                                ctx.chart.data.datasets[0].data.map(data => { sum += data; });
-                                if(value === 0 || isNaN(sum) || sum === 0) return '';
-                                return (value * 100 / sum).toFixed(1) + "%";
-                            }
-                        },
-                        // Suma en Tooltip si es gráfico de barras diario
-                        tooltip: {
-                            callbacks: mostrarTotal ? {
-                                footer: function(items) {
-                                    let total = 0;
-                                    items[0].chart.data.datasets.forEach(ds => { total += (ds.data[items[0].dataIndex] || 0); });
-                                    return '\nTOTAL GENERAL: ' + total.toLocaleString('es-AR');
-                                }
-                            } : {}
-                        }
-                    }
-                }
-            };
-
-            if(tipo === 'doughnut') {
-                conf.options.cutout = '65%'; // Achica el grosor para que entre mejor
-                conf.options.layout = { padding: 10 };
-            } else {
-                conf.options.scales = {
-                    x: { stacked: apilado, grid: {color: '#334155'}, ticks: {color: '#94a3b8'} },
-                    y: { stacked: apilado, beginAtZero: true, grid: {color: '#334155'}, ticks: {color: '#94a3b8'} } // beginAtZero para línea
-                };
-            }
-            charts[idCanvas] = new Chart(ctx, conf);
-        }
-    </script>
-</body>
-</html>
+            dataAct.forEach(e => {
+                const fKey = `${e.fechaObj.getFullYear()}-${String(e.fechaObj.getMonth()+1).padStart(2,'0')}-${String(e.fechaObj.getDate()).padStart(2,'0')}`;
+                if(!diasObj
