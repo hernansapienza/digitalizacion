@@ -22,7 +22,6 @@
 
         body {
             background-color: var(--bg-dark); color: #f8fafc;
-            /* Aplicación de la fuente Roboto a toda la web */
             font-family: 'Roboto', sans-serif; 
             margin: 0; display: flex; height: 100vh; overflow: hidden;
         }
@@ -190,19 +189,13 @@
             try { let str = String(val).replace(/\./g, '').replace(/,/g, ''); let num = parseInt(str); return isNaN(num) ? 0 : num; } catch(e) { return 0; }
         }
 
-        // --- FILTRO INTELIGENTE PARA NOMBRES ---
         function registrarNombre(nombreOriginal) {
             if(!nombreOriginal) return null;
             let str = String(nombreOriginal).trim();
             if(str === "") return null;
-            
-            // FILTRO DE BASURA: Ignora si es un número puro, una fecha o si es demasiado corto
             if (!isNaN(str) || str.includes('/') || str.includes('-') || str.length < 3) return null;
-
             const norm = normalizarTexto(str);
-            // Revisa que al menos tenga una letra después de limpiar
             if(!norm || !/[a-z]/i.test(norm)) return null;
-
             if(!mapaNombres[norm]) mapaNombres[norm] = str;
             return norm;
         }
@@ -517,6 +510,7 @@
             armarTop(rankings.rear, 'rank-rear');
         }
 
+        // --- SISTEMA MAESTRO DE GRÁFICOS ---
         function crearGrafico(idCanvas, tipo, etiquetas, datasets, apilado = false, mostrarTotal = false) {
             if (charts[idCanvas]) charts[idCanvas].destroy();
             const ctx = document.getElementById(idCanvas).getContext('2d');
@@ -531,15 +525,28 @@
                     plugins: { 
                         legend: { position: tipo==='doughnut'?'right':'top', labels: {color:'#94a3b8', font: {family: "'Roboto', sans-serif"}} },
                         datalabels: {
-                            display: function(context) { return tipo === 'doughnut' || idCanvas === 'chart-linea-12m'; },
-                            color: function(context) { return tipo === 'doughnut' ? '#ffffff' : '#10b981'; },
-                            align: function(context) { return tipo === 'doughnut' ? 'center' : 'top'; },
-                            font: { weight: 'bold', size: 12, family: "'Roboto', sans-serif" },
+                            display: function(context) { 
+                                if (tipo === 'doughnut' || idCanvas === 'chart-linea-12m') return true; 
+                                // Para barras diarias: Mostrar etiqueta SOLAMENTE en la última porción de la pila
+                                if (idCanvas === 'chart-barras-diarias') return context.datasetIndex === context.chart.data.datasets.length - 1;
+                                return false;
+                            },
+                            color: function(context) { return tipo === 'doughnut' ? '#ffffff' : (idCanvas === 'chart-barras-diarias' ? '#cbd5e1' : '#10b981'); },
+                            align: function(context) { return tipo === 'doughnut' ? 'center' : (idCanvas === 'chart-barras-diarias' ? 'end' : 'top'); },
+                            anchor: function(context) { return idCanvas === 'chart-barras-diarias' ? 'end' : 'center'; },
+                            offset: 4,
+                            font: { weight: 'bold', size: 11, family: "'Roboto', sans-serif" },
                             formatter: (value, ctx) => {
                                 if(tipo === 'doughnut') {
                                     let sum = 0; ctx.chart.data.datasets[0].data.map(data => { sum += data; });
                                     if(value === 0 || isNaN(sum) || sum === 0) return '';
                                     return (value * 100 / sum).toFixed(1) + "%";
+                                }
+                                if(idCanvas === 'chart-barras-diarias') {
+                                    let totalDia = 0;
+                                    // Sumar los valores de todas las gerencias (datasets) para este mismo día (dataIndex)
+                                    ctx.chart.data.datasets.forEach(ds => { totalDia += (ds.data[ctx.dataIndex] || 0); });
+                                    return totalDia > 0 ? totalDia.toLocaleString('es-AR') : '';
                                 }
                                 return value > 0 ? value.toLocaleString('es-AR') : '';
                             }
@@ -556,7 +563,10 @@
                     x: { stacked: apilado, grid: {color: '#334155'}, ticks: {color: '#94a3b8', font: {family: "'Roboto', sans-serif"}} },
                     y: { stacked: apilado, beginAtZero: true, grid: {color: '#334155'}, ticks: {color: '#94a3b8', font: {family: "'Roboto', sans-serif"}} }
                 };
-                if(idCanvas === 'chart-linea-12m') conf.options.layout = { padding: { top: 20 } }; 
+                // Le damos más aire arriba para que entren cómodos los números de los totales
+                if(idCanvas === 'chart-linea-12m' || idCanvas === 'chart-barras-diarias') {
+                    conf.options.layout = { padding: { top: 25 } }; 
+                }
             }
             charts[idCanvas] = new Chart(ctx, conf);
         }
