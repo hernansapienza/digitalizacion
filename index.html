@@ -27,7 +27,33 @@
         }
 
         nav { width: var(--sidebar-width); background-color: #020617; border-right: 1px solid #1e293b; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
-        .brand { padding: 0 20px 30px; font-size: 1.1rem; font-weight: bold; color: var(--accent); text-transform: uppercase; }
+        
+        /* --- NUEVO DISEÑO DEL LOGO --- */
+        .brand { 
+            padding: 10px 20px 30px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center;
+            gap: 15px; 
+        }
+        .brand-img {
+            width: 85%; /* Se ajusta al ancho del menú */
+            max-width: 180px;
+            height: auto;
+            background-color: #f8fafc; /* Fondo blanco para que el texto gris se lea bien */
+            padding: 12px;
+            border-radius: 8px; /* Bordes redondeados */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .brand-text {
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            color: var(--accent); 
+            text-transform: uppercase; 
+            line-height: 1.3;
+        }
+
         .nav-link { padding: 15px 20px; color: #94a3b8; text-decoration: none; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; font-weight: 500; }
         .nav-link:hover, .nav-link.active { background-color: #1e293b; color: white; border-left-color: var(--accent); }
 
@@ -80,7 +106,10 @@
     </div>
 
     <nav>
-        <div class="brand">📊 Dashboard Digitalización</div>
+        <div class="brand">
+            <img src="LOGO_CMA.png" class="brand-img" alt="Logo CMA">
+            <span class="brand-text">Dashboard<br>Digitalización</span>
+        </div>
         <div class="nav-link active" onclick="cambiarSeccion('seccion-mensual')">Reporte Mensual</div>
         <div class="nav-link" onclick="cambiarSeccion('seccion-anual')">Últimos 12 Meses</div>
         <div class="nav-link" onclick="cambiarSeccion('seccion-detalle')">Detalle de Producción</div>
@@ -510,7 +539,6 @@
             armarTop(rankings.rear, 'rank-rear');
         }
 
-        // --- SISTEMA MAESTRO DE GRÁFICOS ---
         function crearGrafico(idCanvas, tipo, etiquetas, datasets, apilado = false, mostrarTotal = false) {
             if (charts[idCanvas]) charts[idCanvas].destroy();
             const ctx = document.getElementById(idCanvas).getContext('2d');
@@ -527,7 +555,6 @@
                         datalabels: {
                             display: function(context) { 
                                 if (tipo === 'doughnut' || idCanvas === 'chart-linea-12m') return true; 
-                                // Para barras diarias: Mostrar etiqueta SOLAMENTE en la última porción de la pila
                                 if (idCanvas === 'chart-barras-diarias') return context.datasetIndex === context.chart.data.datasets.length - 1;
                                 return false;
                             },
@@ -544,7 +571,6 @@
                                 }
                                 if(idCanvas === 'chart-barras-diarias') {
                                     let totalDia = 0;
-                                    // Sumar los valores de todas las gerencias (datasets) para este mismo día (dataIndex)
                                     ctx.chart.data.datasets.forEach(ds => { totalDia += (ds.data[ctx.dataIndex] || 0); });
                                     return totalDia > 0 ? totalDia.toLocaleString('es-AR') : '';
                                 }
@@ -563,7 +589,6 @@
                     x: { stacked: apilado, grid: {color: '#334155'}, ticks: {color: '#94a3b8', font: {family: "'Roboto', sans-serif"}} },
                     y: { stacked: apilado, beginAtZero: true, grid: {color: '#334155'}, ticks: {color: '#94a3b8', font: {family: "'Roboto', sans-serif"}} }
                 };
-                // Le damos más aire arriba para que entren cómodos los números de los totales
                 if(idCanvas === 'chart-linea-12m' || idCanvas === 'chart-barras-diarias') {
                     conf.options.layout = { padding: { top: 25 } }; 
                 }
