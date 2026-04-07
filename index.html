@@ -152,7 +152,7 @@
             </div>
             <div style="text-align: right; margin-top: 15px;">
                 <button onclick="exportarJPG()" class="btn-export" id="btn-expo">
-                    <span style="font-size: 1.2rem;">📷</span> Exportar a JPG
+                    <span style="font-size: 1.2rem;">📷</span> Exportar a JPG (Alta Res)
                 </button>
             </div>
         </div>
@@ -575,7 +575,14 @@
                             align: function(context) { return tipo === 'doughnut' ? 'center' : (idCanvas === 'chart-barras-diarias' ? 'end' : 'top'); },
                             anchor: function(context) { return idCanvas === 'chart-barras-diarias' ? 'end' : 'center'; },
                             offset: 4,
-                            font: { weight: 'bold', size: 11, family: "'Roboto', sans-serif" },
+                            // --- AJUSTE: TAMAÑO DE FUENTE SUBIDO A 14px PARA GRÁFICO DE LÍNEA ---
+                            font: function(context) {
+                                return {
+                                    weight: 'bold',
+                                    size: (idCanvas === 'chart-linea-12m') ? 14 : 11, // Subimos a 14 solo en este gráfico
+                                    family: "'Roboto', sans-serif"
+                                };
+                            },
                             formatter: (value, ctx) => {
                                 if(tipo === 'doughnut') {
                                     let sum = 0; ctx.chart.data.datasets[0].data.map(data => { sum += data; });
@@ -610,7 +617,7 @@
         }
 
         // =====================================================================
-        // FUNCIÓN PARA EXPORTAR A JPG CON FONDO BLANCO
+        // FUNCIÓN PARA EXPORTAR A JPG CON FONDO BLANCO Y ALTA RESOLUCIÓN
         // =====================================================================
         function exportarJPG() {
             const btn = document.getElementById('btn-expo');
@@ -640,12 +647,13 @@
             setTimeout(() => {
                 html2canvas(contenedor, {
                     backgroundColor: '#ffffff',
-                    scale: 2 // Alta resolución
+                    // --- AJUSTE: SÚPER RESOLUCIÓN SUBIDA A ESCALA 3 ---
+                    scale: 3 // Genera una imagen 3 veces más grande que la pantalla para ultra nitidez
                 }).then(canvas => {
                     // Crear el archivo JPG y forzar la descarga
                     const link = document.createElement('a');
                     link.download = 'Reporte_Digitalizacion_12_Meses.jpg';
-                    link.href = canvas.toDataURL('image/jpeg', 1.0);
+                    link.href = canvas.toDataURL('image/jpeg', 0.95); // 0.95 de calidad es perfecto balance
                     link.click();
 
                     // 4. Volver al Modo Oscuro original
@@ -659,7 +667,7 @@
                         c.update('none');
                     });
                     
-                    btn.innerHTML = `<span style="font-size: 1.2rem;">📷</span> Exportar a JPG`;
+                    btn.innerHTML = `<span style="font-size: 1.2rem;">📷</span> Exportar a JPG (Alta Res)`;
                 });
             }, 100);
         }
