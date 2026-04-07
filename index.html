@@ -198,8 +198,8 @@
         // =====================================================================
         // ⚠️ PEGA AQUÍ TUS ENLACES CSV (MANTENIENDO LAS COMILLAS)
         // =====================================================================
-        const URL_HOJA_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
-        const URL_HOJA_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
+        const URL_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
+        const URL_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
         // =====================================================================
 
         let eventosOperadores = []; 
@@ -209,7 +209,6 @@
 
         window.onload = () => inicializarBases();
 
-        // Función para mostrar errores fatales en pantalla
         function mostrarError(mensaje, detalle = "") {
             const loader = document.getElementById('loader');
             loader.style.color = '#ef4444'; 
@@ -220,9 +219,7 @@
         // --- FUNCIONES BLINDADAS ---
         function normalizarTexto(txt) {
             if(!txt) return "";
-            try {
-                return String(txt).trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/gi, "n").toLowerCase();
-            } catch(e) { return ""; }
+            try { return String(txt).trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/gi, "n").toLowerCase(); } catch(e) { return ""; }
         }
 
         function limpiarNumero(val) {
@@ -260,7 +257,20 @@
             } catch(e) { return null; }
         }
 
-        // --- LECTURA SEGURA DE BASES ---
+        // Función auxiliar para buscar columnas sin importar cómo estén escritas
+        function buscarValor(fila, palabrasClave) {
+            for (let clave of palabrasClave) {
+                if (fila[clave] !== undefined && fila[clave] !== "") return fila[clave];
+            }
+            for (let k in fila) {
+                for (let clave of palabrasClave) {
+                    if (k.includes(clave) && fila[k] !== "") return fila[k];
+                }
+            }
+            return null;
+        }
+
+        // --- LECTURA SEGURA Y EXTRACCIÓN CONVERGENTE ---
         function inicializarBases() {
             if(URL_HOJA_1.includes("TU_ENLACE")) {
                 mostrarError("Faltan los enlaces a Google Sheets.", "Asegurate de pegar las URLs en las líneas 217 y 218.");
@@ -269,17 +279,16 @@
 
             Papa.parse(URL_HOJA_1, { 
                 download: true, header: true, skipEmptyLines: true,
+                transformHeader: function(h) { return h.trim().toLowerCase(); }, // LIMPIA CABECERAS (Vital para evitar errores por espacios)
                 error: function(err) { mostrarError("No se pudo leer la Hoja 1", err); },
                 complete: (r1) => {
                     Papa.parse(URL_HOJA_2, { 
                         download: true, header: true, skipEmptyLines: true,
+                        transformHeader: function(h) { return h.trim().toLowerCase(); },
                         error: function(err) { mostrarError("No se pudo leer la Hoja 2", err); },
                         complete: (r2) => {
-                            try {
-                                procesarDatos(r1.data, r2.data);
-                            } catch (errorFatal) {
-                                mostrarError("Error procesando las columnas.", errorFatal.message);
-                            }
+                            try { procesarDatos(r1.data, r2.data); } 
+                            catch (errorFatal) { mostrarError("Error procesando las columnas.", errorFatal.message); }
                         }
                     });
                 }
@@ -289,44 +298,76 @@
         function procesarDatos(data1, data2) {
             const usuariosSet = new Set();
 
-            // PROCESAR HOJA 1
             if(Array.isArray(data1)) {
                 data1.forEach(fila => {
                     try {
-                        if (fila.user && fila.fecha_digitalizado) {
-                            let fObj = procesarFecha(fila.fecha_digitalizado);
-                            let cant = limpiarNumero(fila.ima_dig);
-                            let userNorm = registrarNombre(fila.user);
-                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'digitalizado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
+                        let statusGlobal = normalizarTexto(fila.status);
+                        
+                        // Capturar Fechas
+                        let fDig = procesarFecha(buscarValor(fila, ['fecha_digitalizado', 'fecha_dig']));
+                        let fAud = procesarFecha(buscarValor(fila, ['fecha_auditado', 'fecha_aud']));
+                        let fPre = procesarFecha(buscarValor(fila, ['fecha_preparado', 'fecha_prep']));
+                        let fRea = procesarFecha(buscarValor(fila, ['fecha_rearmado', 'fecha_rear']));
+                        let fechaComodin = fDig || fAud || fPre || fRea;
+
+                        // Digitalizado
+                        let cantDig = limpiarNumero(buscarValor(fila, ['ima_dig', 'ima_digitalizado', 'dig']));
+                        let usrDig = registrarNombre(buscarValor(fila, ['user', 'usuario', 'digitalizador']));
+                        if (!fDig && statusGlobal === 'digitalizado') fDig = fechaComodin;
+                        if (cantDig > 0 && usrDig && fDig) {
+                            eventosOperadores.push({ tarea: 'digitalizado', usuario: usrDig, cantidad: cantDig, fechaObj: fDig });
+                            usuariosSet.add(usrDig);
                         }
-                        if (fila.auditor && fila.fecha_auditado) {
-                            let fObj = procesarFecha(fila.fecha_auditado);
-                            let cant = limpiarNumero(fila.ima_audi);
-                            let userNorm = registrarNombre(fila.auditor);
-                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'auditado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
+
+                        // Auditado (Mejorado con fuerza bruta por si falta la columna)
+                        let cantAud = limpiarNumero(buscarValor(fila, ['ima_audi', 'ima_auditado', 'audi']));
+                        let usrAud = registrarNombre(buscarValor(fila, ['auditor', 'audi']));
+                        
+                        if (statusGlobal === 'auditado') {
+                            if (cantAud === 0) cantAud = cantDig || limpiarNumero(buscarValor(fila, ['cantidad', 'cant'])); // Asume cant general
+                            if (!usrAud) usrAud = usrDig || registrarNombre(buscarValor(fila, ['user'])); // Asume usuario general
+                            if (!fAud) fAud = fechaComodin;
                         }
-                        if (fila.preparador && fila.fecha_preparado) {
-                            let fObj = procesarFecha(fila.fecha_preparado);
-                            let cant = limpiarNumero(fila.hojas_prep);
-                            let userNorm = registrarNombre(fila.preparador);
-                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'preparado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
+
+                        if (cantAud > 0 && usrAud && fAud) {
+                            eventosOperadores.push({ tarea: 'auditado', usuario: usrAud, cantidad: cantAud, fechaObj: fAud });
+                            usuariosSet.add(usrAud);
                         }
-                        if (fila.rearmador && fila.fecha_rearmado) {
-                            let fObj = procesarFecha(fila.fecha_rearmado);
-                            let cant = limpiarNumero(fila.hojas_prep);
-                            let userNorm = registrarNombre(fila.rearmador);
-                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'rearmado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
+
+                        // Preparado
+                        let cantPre = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_preparado']));
+                        let usrPre = registrarNombre(buscarValor(fila, ['preparador', 'prep']));
+                        if (statusGlobal === 'preparado') {
+                            if (cantPre === 0) cantPre = limpiarNumero(buscarValor(fila, ['cantidad', 'cant']));
+                            if (!usrPre) usrPre = registrarNombre(buscarValor(fila, ['user']));
+                            if (!fPre) fPre = fechaComodin;
                         }
-                    } catch(e) {} // Ignora la fila rota y sigue
+                        if (cantPre > 0 && usrPre && fPre) {
+                            eventosOperadores.push({ tarea: 'preparado', usuario: usrPre, cantidad: cantPre, fechaObj: fPre });
+                            usuariosSet.add(usrPre);
+                        }
+
+                        // Rearmado
+                        let cantRea = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_rearmado'])); 
+                        let usrRea = registrarNombre(buscarValor(fila, ['rearmador', 'rear']));
+                        if (statusGlobal === 'rearmado') {
+                            if (cantRea === 0) cantRea = limpiarNumero(buscarValor(fila, ['cantidad', 'cant']));
+                            if (!usrRea) usrRea = registrarNombre(buscarValor(fila, ['user']));
+                            if (!fRea) fRea = fechaComodin;
+                        }
+                        if (cantRea > 0 && usrRea && fRea) {
+                            eventosOperadores.push({ tarea: 'rearmado', usuario: usrRea, cantidad: cantRea, fechaObj: fRea });
+                            usuariosSet.add(usrRea);
+                        }
+                    } catch(e) {} 
                 });
             }
 
-            // PROCESAR HOJA 2
             if(Array.isArray(data2)) {
                 data2.forEach(fila => {
                     try {
-                        let fObj = procesarFecha(fila.fecha_digitalizado);
-                        let cant = limpiarNumero(fila.ima_dig);
+                        let fObj = procesarFecha(buscarValor(fila, ['fecha_digitalizado', 'fecha']));
+                        let cant = limpiarNumero(buscarValor(fila, ['ima_dig', 'cantidad']));
                         if(fObj && cant > 0) {
                             eventosGerencias.push({
                                 fechaObj: fObj,
@@ -364,245 +405,4 @@
             }
         }
 
-        function gestionarFiltros() {
-            const val = document.getElementById('filtro-periodo').value;
-            document.getElementById('fechas-personalizadas').style.display = (val === 'personalizado') ? 'flex' : 'none';
-            ejecutarMotorVisual();
-        }
-
-        function obtenerRangosFecha() {
-            const tipo = document.getElementById('filtro-periodo').value;
-            const hoy = new Date(); hoy.setHours(0,0,0,0);
-            let iAct, fAct, iPrev, fPrev;
-
-            if (tipo === 'este_mes') {
-                iAct = new Date(hoy.getFullYear(), hoy.getMonth(), 1); fAct = hoy;
-                iPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); fPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, hoy.getDate());
-            } else if (tipo === 'mes_anterior') {
-                iAct = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); fAct = new Date(hoy.getFullYear(), hoy.getMonth(), 0); 
-                iPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1); fPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 0);
-            } else if (tipo === 'ultimos_3_meses') {
-                iAct = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate()); fAct = hoy;
-                iPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 6, hoy.getDate()); fPrev = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate() - 1);
-            } else {
-                const d = document.getElementById('fecha-desde').value; const h = document.getElementById('fecha-hasta').value;
-                if(!d || !h) return null; 
-                iAct = new Date(d + "T00:00:00"); fAct = new Date(h + "T00:00:00");
-                const diasDif = Math.floor((fAct - iAct) / 86400000) + 1;
-                fPrev = new Date(iAct); fPrev.setDate(fPrev.getDate() - 1);
-                iPrev = new Date(fPrev); iPrev.setDate(iPrev.getDate() - diasDif + 1);
-            }
-            return { act: {i: iAct, f: fAct}, prev: {i: iPrev, f: fPrev} };
-        }
-
-        function ejecutarMotorVisual() {
-            const seccion = document.querySelector('.section.active').id;
-            if(seccion === 'seccion-anual') return;
-
-            const rangos = obtenerRangosFecha();
-            if(!rangos) return; 
-
-            if(seccion === 'seccion-mensual') {
-                const dataAct = eventosGerencias.filter(e => e.fechaObj >= rangos.act.i && e.fechaObj <= rangos.act.f);
-                const dataPrev = eventosGerencias.filter(e => e.fechaObj >= rangos.prev.i && e.fechaObj <= rangos.prev.f);
-                renderMensual(dataAct, dataPrev);
-            }
-            if(seccion === 'seccion-detalle') {
-                const dataOp = eventosOperadores.filter(e => e.fechaObj >= rangos.act.i && e.fechaObj <= rangos.act.f);
-                renderDetalle(dataOp);
-            }
-        }
-
-        function renderMensual(dataAct, dataPrev) {
-            let digAct = 0, digPrev = 0;
-            const fechasConProduccion = new Set(); 
-
-            dataAct.forEach(e => { digAct += e.cantidad; fechasConProduccion.add(e.fechaObj.getTime()); });
-            dataPrev.forEach(e => { digPrev += e.cantidad; });
-
-            document.getElementById('kpi-img-total').innerText = digAct.toLocaleString('es-AR');
-            const dif = digPrev === 0 ? (digAct > 0 ? 100 : 0) : ((digAct - digPrev) / digPrev) * 100;
-            const elTrend = document.getElementById('kpi-img-trend');
-            elTrend.innerHTML = dif >= 0 ? `▲ +${dif.toFixed(1)}% vs periodo ant.` : `▼ ${dif.toFixed(1)}% vs periodo ant.`;
-            elTrend.className = dif >= 0 ? 'kpi-trend trend-up' : 'kpi-trend trend-down';
-
-            const diasTrabajados = Math.max(1, fechasConProduccion.size);
-            document.getElementById('kpi-img-promedio').innerText = Math.round(digAct / diasTrabajados).toLocaleString('es-AR');
-
-            const gerenciasData = {}; 
-            const chartGenObj = {};
-
-            dataAct.forEach(e => {
-                if(!gerenciasData[e.gerencia]) gerenciasData[e.gerencia] = { total: 0, areas: {} };
-                gerenciasData[e.gerencia].total += e.cantidad;
-                gerenciasData[e.gerencia].areas[e.area] = (gerenciasData[e.gerencia].areas[e.area] || 0) + e.cantidad;
-                chartGenObj[e.gerencia] = (chartGenObj[e.gerencia] || 0) + e.cantidad;
-            });
-
-            const tbody = document.querySelector('#tabla-gerencias tbody');
-            let htmlTabla = '';
-            Object.keys(gerenciasData).sort((a,b) => gerenciasData[b].total - gerenciasData[a].total).forEach(g => {
-                htmlTabla += `<tr class="row-gerencia"><td colspan="2">${g}</td><td>${gerenciasData[g].total.toLocaleString('es-AR')}</td></tr>`;
-                Object.keys(gerenciasData[g].areas).sort((a,b) => gerenciasData[g].areas[b] - gerenciasData[g].areas[a]).forEach(a => {
-                    htmlTabla += `<tr class="row-area"><td>└</td><td>${a}</td><td>${gerenciasData[g].areas[a].toLocaleString('es-AR')}</td></tr>`;
-                });
-            });
-            tbody.innerHTML = htmlTabla;
-
-            crearGrafico('chart-doughnut-gerencia', 'doughnut', Object.keys(chartGenObj), [{data: Object.values(chartGenObj)}]);
-
-            const diasObj = {}; const gerenciasUnicas = Object.keys(chartGenObj);
-            dataAct.forEach(e => {
-                const fKey = `${e.fechaObj.getFullYear()}-${String(e.fechaObj.getMonth()+1).padStart(2,'0')}-${String(e.fechaObj.getDate()).padStart(2,'0')}`;
-                if(!diasObj[fKey]) { diasObj[fKey] = {}; gerenciasUnicas.forEach(gu => diasObj[fKey][gu]=0); }
-                diasObj[fKey][e.gerencia] += e.cantidad;
-            });
-
-            const clavesOrdenadas = Object.keys(diasObj).sort(); 
-            const labelsVisuales = clavesOrdenadas.map(k => { const parts = k.split('-'); return `${parts[2]}/${parts[1]}`; });
-
-            const datasets = gerenciasUnicas.map((g, i) => {
-                const colores = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
-                return { label: g, backgroundColor: colores[i % colores.length], data: clavesOrdenadas.map(k => diasObj[k][g]) };
-            });
-            crearGrafico('chart-barras-diarias', 'bar', labelsVisuales, datasets, true, true);
-        }
-
-        function renderAnual() {
-            const hoy = new Date();
-            const fin12m = new Date(hoy.getFullYear(), hoy.getMonth(), 0); 
-            const ini12m = new Date(hoy.getFullYear(), hoy.getMonth() - 12, 1);
-
-            const data12m = eventosGerencias.filter(e => e.fechaObj >= ini12m && e.fechaObj <= fin12m);
-            const mesesObj = {}; const gerenciasUnicas = new Set();
-
-            data12m.forEach(e => {
-                const mesStr = e.fechaObj.toLocaleDateString('es-AR', {year:'numeric', month:'short'});
-                gerenciasUnicas.add(e.gerencia);
-                if(!mesesObj[mesStr]) { mesesObj[mesStr] = { total: 0, gerencias: {} }; }
-                if(!mesesObj[mesStr].gerencias[e.gerencia]) mesesObj[mesStr].gerencias[e.gerencia] = 0;
-                mesesObj[mesStr].total += e.cantidad;
-                mesesObj[mesStr].gerencias[e.gerencia] += e.cantidad;
-            });
-
-            const labelsMeses = [];
-            for(let i=12; i>0; i--) {
-                const m = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-                labelsMeses.push(m.toLocaleDateString('es-AR', {year:'numeric', month:'short'}));
-            }
-
-            const dataLinea = labelsMeses.map(m => mesesObj[m] ? mesesObj[m].total : 0);
-            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{
-                label: 'Imágenes', data: dataLinea, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', fill: true, tension: 0.3
-            }]);
-
-            const arGerencias = Array.from(gerenciasUnicas);
-            const datasets12m = arGerencias.map((g, i) => {
-                const colores = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
-                return { label: g, backgroundColor: colores[i % colores.length], data: labelsMeses.map(m => (mesesObj[m] && mesesObj[m].gerencias[g]) ? mesesObj[m].gerencias[g] : 0) };
-            });
-            crearGrafico('chart-barras-12m', 'bar', labelsMeses, datasets12m, true);
-        }
-
-        function renderDetalle(dataOp) {
-            const usuSel = document.getElementById('filtro-usuario').value;
-            let kDig=0, kAudi=0, kPrep=0, kRear=0;
-            const tiempos = {}; 
-            const rankings = { dig: {}, audi: {}, prep: {}, rear: {} };
-
-            dataOp.forEach(e => {
-                const fKey = `${e.fechaObj.getFullYear()}-${String(e.fechaObj.getMonth()+1).padStart(2,'0')}-${String(e.fechaObj.getDate()).padStart(2,'0')}`;
-                if(!tiempos[fKey]) tiempos[fKey] = {dig:0, audi:0, prep:0, rear:0};
-
-                if(e.tarea === 'digitalizado') rankings.dig[e.usuario] = (rankings.dig[e.usuario] || 0) + e.cantidad;
-                if(e.tarea === 'auditado') rankings.audi[e.usuario] = (rankings.audi[e.usuario] || 0) + e.cantidad;
-                if(e.tarea === 'preparado') rankings.prep[e.usuario] = (rankings.prep[e.usuario] || 0) + e.cantidad;
-                if(e.tarea === 'rearmado') rankings.rear[e.usuario] = (rankings.rear[e.usuario] || 0) + e.cantidad;
-
-                if(usuSel === 'todos' || usuSel === e.usuario) {
-                    if(e.tarea === 'digitalizado') { kDig += e.cantidad; tiempos[fKey].dig += e.cantidad; }
-                    if(e.tarea === 'auditado') { kAudi += e.cantidad; tiempos[fKey].audi += e.cantidad; }
-                    if(e.tarea === 'preparado') { kPrep += e.cantidad; tiempos[fKey].prep += e.cantidad; }
-                    if(e.tarea === 'rearmado') { kRear += e.cantidad; tiempos[fKey].rear += e.cantidad; }
-                }
-            });
-
-            document.getElementById('det-dig').innerText = kDig.toLocaleString('es-AR');
-            document.getElementById('det-audi').innerText = kAudi.toLocaleString('es-AR');
-            document.getElementById('det-prep').innerText = kPrep.toLocaleString('es-AR');
-            document.getElementById('det-rear').innerText = kRear.toLocaleString('es-AR');
-
-            const clavesOrdenadas = Object.keys(tiempos).sort();
-            const labelsVisuales = clavesOrdenadas.map(k => { const p = k.split('-'); return `${p[2]}/${p[1]}`; });
-
-            crearGrafico('chart-lineas-tareas', 'line', labelsVisuales, [
-                {label: 'Digitalizado', data: clavesOrdenadas.map(d => tiempos[d].dig), borderColor: '#10b981', tension: 0.3},
-                {label: 'Auditado', data: clavesOrdenadas.map(d => tiempos[d].audi), borderColor: '#f59e0b', tension: 0.3},
-                {label: 'Preparado', data: clavesOrdenadas.map(d => tiempos[d].prep), borderColor: '#38bdf8', tension: 0.3},
-                {label: 'Rearmado', data: clavesOrdenadas.map(d => tiempos[d].rear), borderColor: '#8b5cf6', tension: 0.3}
-            ]);
-
-            const armarTop = (objRank, idDiv) => {
-                let html = '';
-                Object.entries(objRank).sort((a,b)=>b[1]-a[1]).slice(0, 10).forEach((item, idx) => {
-                    html += `<div class="rank-item"><span>${idx+1}. ${mapaNombres[item[0]]}</span> <span>${item[1].toLocaleString('es-AR')}</span></div>`;
-                });
-                document.getElementById(idDiv).innerHTML = html || '<div style="text-align:center;color:#64748b;font-size:0.8rem;">Sin datos</div>';
-            };
-            armarTop(rankings.dig, 'rank-dig');
-            armarTop(rankings.audi, 'rank-audi');
-            armarTop(rankings.prep, 'rank-prep');
-            armarTop(rankings.rear, 'rank-rear');
-        }
-
-        function crearGrafico(idCanvas, tipo, etiquetas, datasets, apilado = false, mostrarTotal = false) {
-            if (charts[idCanvas]) charts[idCanvas].destroy();
-            const ctx = document.getElementById(idCanvas).getContext('2d');
-            
-            const paleta = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
-            datasets.forEach((ds, i) => { if(!ds.backgroundColor && tipo !== 'line') ds.backgroundColor = paleta.slice(0, ds.data.length); });
-
-            const conf = {
-                type: tipo, data: { labels: etiquetas, datasets: datasets },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: tipo==='doughnut'?'right':'top', labels: {color:'#94a3b8'} },
-                        datalabels: {
-                            display: tipo === 'doughnut',
-                            color: '#ffffff', font: { weight: 'bold', size: 12 },
-                            formatter: (value, ctx) => {
-                                if(tipo !== 'doughnut') return null;
-                                let sum = 0;
-                                ctx.chart.data.datasets[0].data.map(data => { sum += data; });
-                                if(value === 0 || isNaN(sum) || sum === 0) return '';
-                                return (value * 100 / sum).toFixed(1) + "%";
-                            }
-                        },
-                        tooltip: {
-                            callbacks: mostrarTotal ? {
-                                footer: function(items) {
-                                    let total = 0;
-                                    items[0].chart.data.datasets.forEach(ds => { total += (ds.data[items[0].dataIndex] || 0); });
-                                    return '\nTOTAL GENERAL: ' + total.toLocaleString('es-AR');
-                                }
-                            } : {}
-                        }
-                    }
-                }
-            };
-
-            if(tipo === 'doughnut') {
-                conf.options.cutout = '65%'; 
-                conf.options.layout = { padding: 10 };
-            } else {
-                conf.options.scales = {
-                    x: { stacked: apilado, grid: {color: '#334155'}, ticks: {color: '#94a3b8'} },
-                    y: { stacked: apilado, beginAtZero: true, grid: {color: '#334155'}, ticks: {color: '#94a3b8'} }
-                };
-            }
-            charts[idCanvas] = new Chart(ctx, conf);
-        }
-    </script>
-</body>
-</html>
+        function gestionar
