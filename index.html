@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root {
@@ -28,28 +29,9 @@
 
         nav { width: var(--sidebar-width); background-color: #020617; border-right: 1px solid #1e293b; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
         
-        /* --- DISEÑO LIMPIO PARA LOGO OSCURO --- */
-        .brand { 
-            padding: 10px 20px 30px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            text-align: center;
-            gap: 15px; 
-        }
-        .brand-img {
-            width: 85%; /* Se ajusta al ancho del menú */
-            max-width: 180px; /* Ancho máximo para el logo */
-            height: auto; /* Mantiene la proporción */
-            /* Se eliminan el color de fondo, padding y sombra del diseño anterior */
-        }
-        .brand-text {
-            font-size: 1.1rem; 
-            font-weight: bold; 
-            color: var(--accent); 
-            text-transform: uppercase; 
-            line-height: 1.3;
-        }
+        .brand { padding: 10px 20px 30px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; }
+        .brand-img { width: 85%; max-width: 180px; height: auto; }
+        .brand-text { font-size: 1.1rem; font-weight: bold; color: var(--accent); text-transform: uppercase; line-height: 1.3; }
 
         .nav-link { padding: 15px 20px; color: #94a3b8; text-decoration: none; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; font-weight: 500; }
         .nav-link:hover, .nav-link.active { background-color: #1e293b; color: white; border-left-color: var(--accent); }
@@ -92,6 +74,15 @@
         .rank-item span:last-child { font-weight: bold; color: var(--success); }
 
         #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); display:flex; justify-content:center; align-items:center; z-index:1000; font-size: 1.2rem; color: var(--accent); flex-direction: column; text-align: center; padding: 20px;}
+
+        /* --- ESTILOS DEL BOTON EXPORTAR --- */
+        .btn-export { background-color: var(--accent); color: #0f172a; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-export:hover { background-color: #0284c7; color: white; }
+
+        /* --- MODO EXPORTACIÓN (TEMPORAL PARA LA FOTO BLANCA) --- */
+        .export-mode { background-color: #ffffff !important; padding: 25px !important; border-radius: 0 !important; }
+        .export-mode .box { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+        .export-mode .box-title { color: #0f172a !important; border-bottom-color: #cbd5e1 !important; }
     </style>
 </head>
 <body>
@@ -149,9 +140,20 @@
         </div>
 
         <div id="seccion-anual" class="section">
-            <div class="content-grid">
-                <div class="box full-width" style="height: 380px;"><h3 class="box-title">Digitalizado Últimos 12 Meses Completos</h3><div class="chart-wrapper"><canvas id="chart-linea-12m"></canvas></div></div>
-                <div class="box full-width" style="height: 400px;"><h3 class="box-title">Producción Mensual por Gerencia</h3><div class="chart-wrapper"><canvas id="chart-barras-12m"></canvas></div></div>
+            <div class="content-grid" id="area-exportar-anual">
+                <div class="box full-width" style="height: 380px;">
+                    <h3 class="box-title">Digitalizado Últimos 12 Meses Completos</h3>
+                    <div class="chart-wrapper"><canvas id="chart-linea-12m"></canvas></div>
+                </div>
+                <div class="box full-width" style="height: 400px;">
+                    <h3 class="box-title">Producción Mensual por Gerencia</h3>
+                    <div class="chart-wrapper"><canvas id="chart-barras-12m"></canvas></div>
+                </div>
+            </div>
+            <div style="text-align: right; margin-top: 15px;">
+                <button onclick="exportarJPG()" class="btn-export" id="btn-expo">
+                    <span style="font-size: 1.2rem;">📷</span> Exportar a JPG
+                </button>
             </div>
         </div>
 
@@ -476,7 +478,16 @@
             }
 
             const dataLinea = labelsMeses.map(m => mesesObj[m] ? mesesObj[m].total : 0);
-            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{ label: 'Imágenes', data: dataLinea, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', fill: true, tension: 0 }]);
+            
+            // --- ACTUALIZADO A COLOR CELESTE/AZUL ---
+            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{ 
+                label: 'Imágenes', 
+                data: dataLinea, 
+                borderColor: '#38bdf8', 
+                backgroundColor: 'rgba(56,189,248,0.2)', 
+                fill: true, 
+                tension: 0 
+            }]);
 
             const arGerencias = Array.from(gerenciasUnicas);
             const datasets12m = arGerencias.map((g, i) => {
@@ -555,7 +566,12 @@
                                 if (idCanvas === 'chart-barras-diarias') return context.datasetIndex === context.chart.data.datasets.length - 1;
                                 return false;
                             },
-                            color: function(context) { return tipo === 'doughnut' ? '#ffffff' : (idCanvas === 'chart-barras-diarias' ? '#cbd5e1' : '#10b981'); },
+                            color: function(context) { 
+                                if (tipo === 'doughnut') return '#ffffff';
+                                if (idCanvas === 'chart-barras-diarias') return '#cbd5e1';
+                                if (idCanvas === 'chart-linea-12m') return '#38bdf8'; // Etiqueta celeste para combinar con la línea
+                                return '#10b981';
+                            },
                             align: function(context) { return tipo === 'doughnut' ? 'center' : (idCanvas === 'chart-barras-diarias' ? 'end' : 'top'); },
                             anchor: function(context) { return idCanvas === 'chart-barras-diarias' ? 'end' : 'center'; },
                             offset: 4,
@@ -591,6 +607,61 @@
                 }
             }
             charts[idCanvas] = new Chart(ctx, conf);
+        }
+
+        // =====================================================================
+        // FUNCIÓN PARA EXPORTAR A JPG CON FONDO BLANCO
+        // =====================================================================
+        function exportarJPG() {
+            const btn = document.getElementById('btn-expo');
+            btn.innerHTML = `<span>⏳</span> Generando JPG...`;
+            
+            const contenedor = document.getElementById('area-exportar-anual');
+            const chartLinea = charts['chart-linea-12m'];
+            const chartBarras = charts['chart-barras-12m'];
+
+            // 1. Activar el Modo Exportación (Fondo blanco)
+            contenedor.classList.add('export-mode');
+
+            // 2. Oscurecer temporalmente las grillas y textos de los gráficos para que se lean sobre blanco
+            const colorOscuro = '#334155';
+            const colorGrilla = '#e2e8f0';
+
+            [chartLinea, chartBarras].forEach(c => {
+                c.options.scales.x.ticks.color = colorOscuro;
+                c.options.scales.y.ticks.color = colorOscuro;
+                c.options.plugins.legend.labels.color = colorOscuro;
+                c.options.scales.x.grid.color = colorGrilla;
+                c.options.scales.y.grid.color = colorGrilla;
+                c.update('none'); // Update rápido sin animación
+            });
+
+            // 3. Darle 100 milisegundos al navegador para que dibuje el modo claro y sacar la "foto"
+            setTimeout(() => {
+                html2canvas(contenedor, {
+                    backgroundColor: '#ffffff',
+                    scale: 2 // Alta resolución
+                }).then(canvas => {
+                    // Crear el archivo JPG y forzar la descarga
+                    const link = document.createElement('a');
+                    link.download = 'Reporte_Digitalizacion_12_Meses.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', 1.0);
+                    link.click();
+
+                    // 4. Volver al Modo Oscuro original
+                    contenedor.classList.remove('export-mode');
+                    [chartLinea, chartBarras].forEach(c => {
+                        c.options.scales.x.ticks.color = '#94a3b8';
+                        c.options.scales.y.ticks.color = '#94a3b8';
+                        c.options.plugins.legend.labels.color = '#94a3b8';
+                        c.options.scales.x.grid.color = '#334155';
+                        c.options.scales.y.grid.color = '#334155';
+                        c.update('none');
+                    });
+                    
+                    btn.innerHTML = `<span style="font-size: 1.2rem;">📷</span> Exportar a JPG`;
+                });
+            }, 100);
         }
     </script>
 </body>
