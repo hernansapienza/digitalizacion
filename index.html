@@ -80,7 +80,7 @@
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px dashed #334155; padding-bottom: 4px;}
         .rank-item span:last-child { font-weight: bold; color: var(--success); }
 
-        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); display:flex; justify-content:center; align-items:center; z-index:1000; font-size: 1.2rem; color: var(--accent); flex-direction: column; }
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); display:flex; justify-content:center; align-items:center; z-index:1000; font-size: 1.2rem; color: var(--accent); flex-direction: column; text-align: center; padding: 20px;}
     </style>
 </head>
 <body>
@@ -196,13 +196,12 @@
         Chart.register(ChartDataLabels);
 
         // =====================================================================
-        // ⚠️ PEGA AQUÍ TUS ENLACES CSV
+        // ⚠️ PEGA AQUÍ TUS ENLACES CSV (MANTENIENDO LAS COMILLAS)
         // =====================================================================
-        const URL_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
-        const URL_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
+        const URL_HOJA_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
+        const URL_HOJA_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
         // =====================================================================
 
-        // BASES DE DATOS APLANADAS
         let eventosOperadores = []; 
         let eventosGerencias = [];
         let mapaNombres = {};
@@ -210,117 +209,141 @@
 
         window.onload = () => inicializarBases();
 
-        // --- FUNCIONES DE LIMPIEZA Y TRANSFORMACIÓN ---
+        // Función para mostrar errores fatales en pantalla
+        function mostrarError(mensaje, detalle = "") {
+            const loader = document.getElementById('loader');
+            loader.style.color = '#ef4444'; 
+            loader.innerHTML = `⚠️ ERROR DEL SISTEMA<br><span style="font-size:0.9rem; color:#cbd5e1; margin-top:10px; display:block;">${mensaje}</span><span style="font-size:0.7rem; color:#64748b; margin-top:5px; display:block;">${detalle}</span>`;
+            console.error("Detalle del error:", detalle);
+        }
+
+        // --- FUNCIONES BLINDADAS ---
         function normalizarTexto(txt) {
             if(!txt) return "";
-            return txt.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/gi, "n").toLowerCase();
+            try {
+                return String(txt).trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/gi, "n").toLowerCase();
+            } catch(e) { return ""; }
         }
 
         function limpiarNumero(val) {
-            if(!val) return 0;
-            if(typeof val === 'number') return val;
-            let str = val.toString().replace(/\./g, '').replace(/,/g, '');
-            let num = parseInt(str);
-            return isNaN(num) ? 0 : num;
+            if(val === null || val === undefined) return 0;
+            if(typeof val === 'number') return isNaN(val) ? 0 : val;
+            try {
+                let str = String(val).replace(/\./g, '').replace(/,/g, '');
+                let num = parseInt(str);
+                return isNaN(num) ? 0 : num;
+            } catch(e) { return 0; }
         }
 
         function registrarNombre(nombreOriginal) {
-            if(!nombreOriginal || nombreOriginal.trim() === "") return null;
-            const norm = normalizarTexto(nombreOriginal);
-            if(!mapaNombres[norm]) mapaNombres[norm] = nombreOriginal.trim();
+            if(!nombreOriginal) return null;
+            let str = String(nombreOriginal).trim();
+            if(str === "") return null;
+            const norm = normalizarTexto(str);
+            if(!mapaNombres[norm]) mapaNombres[norm] = str;
             return norm;
         }
 
         function procesarFecha(fechaStr) {
             if(!fechaStr) return null;
-            let p;
-            if(fechaStr.includes('/')) {
-                p = fechaStr.split('/');
-                return new Date(p[2], p[1]-1, p[0]); // Interpreta DD/MM/YYYY
-            } else if (fechaStr.includes('-')) {
-                p = fechaStr.split('-');
-                return new Date(p[0], p[1]-1, p[2]); // Interpreta YYYY-MM-DD
-            }
-            return null;
+            try {
+                let f = String(fechaStr).trim();
+                let p;
+                if(f.includes('/')) {
+                    p = f.split('/');
+                    if(p.length >= 3) return new Date(p[2], p[1]-1, p[0]); 
+                } else if (f.includes('-')) {
+                    p = f.split('-');
+                    if(p.length >= 3) return new Date(p[0], p[1]-1, p[2]); 
+                }
+                return null;
+            } catch(e) { return null; }
         }
 
-        // --- NUEVO MOTOR DE LECTURA (EXTRACCIÓN DE EVENTOS) ---
+        // --- LECTURA SEGURA DE BASES ---
         function inicializarBases() {
             if(URL_HOJA_1.includes("TU_ENLACE")) {
-                document.getElementById('loader-msg').innerText = "⚠️ Error: Faltan los enlaces de tus Google Sheets en el código."; return;
+                mostrarError("Faltan los enlaces a Google Sheets.", "Asegurate de pegar las URLs en las líneas 217 y 218.");
+                return;
             }
 
-            Papa.parse(URL_HOJA_1, { download: true, header: true, skipEmptyLines: true, complete: (r1) => {
-                Papa.parse(URL_HOJA_2, { download: true, header: true, skipEmptyLines: true, complete: (r2) => {
-                    
-                    const usuariosSet = new Set();
+            Papa.parse(URL_HOJA_1, { 
+                download: true, header: true, skipEmptyLines: true,
+                error: function(err) { mostrarError("No se pudo leer la Hoja 1", err); },
+                complete: (r1) => {
+                    Papa.parse(URL_HOJA_2, { 
+                        download: true, header: true, skipEmptyLines: true,
+                        error: function(err) { mostrarError("No se pudo leer la Hoja 2", err); },
+                        complete: (r2) => {
+                            try {
+                                procesarDatos(r1.data, r2.data);
+                            } catch (errorFatal) {
+                                mostrarError("Error procesando las columnas.", errorFatal.message);
+                            }
+                        }
+                    });
+                }
+            });
+        }
 
-                    // PROCESAR HOJA 1: Crear un "Evento" por cada tarea detectada, ignorando la columna global de "Status"
-                    r1.data.forEach(fila => {
-                        // Evento Digitalizado
+        function procesarDatos(data1, data2) {
+            const usuariosSet = new Set();
+
+            // PROCESAR HOJA 1
+            if(Array.isArray(data1)) {
+                data1.forEach(fila => {
+                    try {
                         if (fila.user && fila.fecha_digitalizado) {
                             let fObj = procesarFecha(fila.fecha_digitalizado);
                             let cant = limpiarNumero(fila.ima_dig);
                             let userNorm = registrarNombre(fila.user);
-                            if (fObj && cant > 0 && userNorm) {
-                                eventosOperadores.push({ tarea: 'digitalizado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
-                                usuariosSet.add(userNorm);
-                            }
+                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'digitalizado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
                         }
-                        // Evento Auditado
                         if (fila.auditor && fila.fecha_auditado) {
                             let fObj = procesarFecha(fila.fecha_auditado);
                             let cant = limpiarNumero(fila.ima_audi);
                             let userNorm = registrarNombre(fila.auditor);
-                            if (fObj && cant > 0 && userNorm) {
-                                eventosOperadores.push({ tarea: 'auditado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
-                                usuariosSet.add(userNorm);
-                            }
+                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'auditado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
                         }
-                        // Evento Preparado
                         if (fila.preparador && fila.fecha_preparado) {
                             let fObj = procesarFecha(fila.fecha_preparado);
                             let cant = limpiarNumero(fila.hojas_prep);
                             let userNorm = registrarNombre(fila.preparador);
-                            if (fObj && cant > 0 && userNorm) {
-                                eventosOperadores.push({ tarea: 'preparado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
-                                usuariosSet.add(userNorm);
-                            }
+                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'preparado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
                         }
-                        // Evento Rearmado
                         if (fila.rearmador && fila.fecha_rearmado) {
                             let fObj = procesarFecha(fila.fecha_rearmado);
                             let cant = limpiarNumero(fila.hojas_prep);
                             let userNorm = registrarNombre(fila.rearmador);
-                            if (fObj && cant > 0 && userNorm) {
-                                eventosOperadores.push({ tarea: 'rearmado', usuario: userNorm, cantidad: cant, fechaObj: fObj });
-                                usuariosSet.add(userNorm);
-                            }
+                            if (fObj && cant > 0 && userNorm) { eventosOperadores.push({ tarea: 'rearmado', usuario: userNorm, cantidad: cant, fechaObj: fObj }); usuariosSet.add(userNorm); }
                         }
-                    });
+                    } catch(e) {} // Ignora la fila rota y sigue
+                });
+            }
 
-                    // PROCESAR HOJA 2: Eventos Gerenciales
-                    r2.data.forEach(fila => {
+            // PROCESAR HOJA 2
+            if(Array.isArray(data2)) {
+                data2.forEach(fila => {
+                    try {
                         let fObj = procesarFecha(fila.fecha_digitalizado);
                         let cant = limpiarNumero(fila.ima_dig);
                         if(fObj && cant > 0) {
                             eventosGerencias.push({
                                 fechaObj: fObj,
-                                gerencia: fila.gerencia ? fila.gerencia.trim() : 'Sin Gerencia',
-                                area: fila.area_solicitante ? fila.area_solicitante.trim() : 'Sin Área',
+                                gerencia: fila.gerencia ? String(fila.gerencia).trim() : 'Sin Gerencia',
+                                area: fila.area_solicitante ? String(fila.area_solicitante).trim() : 'Sin Área',
                                 cantidad: cant
                             });
                         }
-                    });
+                    } catch(e) {}
+                });
+            }
 
-                    // Cargar selector de usuarios
-                    const sel = document.getElementById('filtro-usuario');
-                    Array.from(usuariosSet).sort().forEach(u => { sel.innerHTML += `<option value="${u}">${mapaNombres[u]}</option>`; });
+            const sel = document.getElementById('filtro-usuario');
+            Array.from(usuariosSet).sort().forEach(u => { sel.innerHTML += `<option value="${u}">${mapaNombres[u]}</option>`; });
 
-                    document.getElementById('loader').style.display = 'none';
-                    gestionarFiltros(); 
-                }});
-            }});
+            document.getElementById('loader').style.display = 'none';
+            gestionarFiltros(); 
         }
 
         // --- CONTROLADORES DE INTERFAZ ---
@@ -390,7 +413,6 @@
             }
         }
 
-        // --- RENDERIZADO REPORTE MENSUAL ---
         function renderMensual(dataAct, dataPrev) {
             let digAct = 0, digPrev = 0;
             const fechasConProduccion = new Set(); 
@@ -432,4 +454,155 @@
             const diasObj = {}; const gerenciasUnicas = Object.keys(chartGenObj);
             dataAct.forEach(e => {
                 const fKey = `${e.fechaObj.getFullYear()}-${String(e.fechaObj.getMonth()+1).padStart(2,'0')}-${String(e.fechaObj.getDate()).padStart(2,'0')}`;
-                if(!diasObj
+                if(!diasObj[fKey]) { diasObj[fKey] = {}; gerenciasUnicas.forEach(gu => diasObj[fKey][gu]=0); }
+                diasObj[fKey][e.gerencia] += e.cantidad;
+            });
+
+            const clavesOrdenadas = Object.keys(diasObj).sort(); 
+            const labelsVisuales = clavesOrdenadas.map(k => { const parts = k.split('-'); return `${parts[2]}/${parts[1]}`; });
+
+            const datasets = gerenciasUnicas.map((g, i) => {
+                const colores = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
+                return { label: g, backgroundColor: colores[i % colores.length], data: clavesOrdenadas.map(k => diasObj[k][g]) };
+            });
+            crearGrafico('chart-barras-diarias', 'bar', labelsVisuales, datasets, true, true);
+        }
+
+        function renderAnual() {
+            const hoy = new Date();
+            const fin12m = new Date(hoy.getFullYear(), hoy.getMonth(), 0); 
+            const ini12m = new Date(hoy.getFullYear(), hoy.getMonth() - 12, 1);
+
+            const data12m = eventosGerencias.filter(e => e.fechaObj >= ini12m && e.fechaObj <= fin12m);
+            const mesesObj = {}; const gerenciasUnicas = new Set();
+
+            data12m.forEach(e => {
+                const mesStr = e.fechaObj.toLocaleDateString('es-AR', {year:'numeric', month:'short'});
+                gerenciasUnicas.add(e.gerencia);
+                if(!mesesObj[mesStr]) { mesesObj[mesStr] = { total: 0, gerencias: {} }; }
+                if(!mesesObj[mesStr].gerencias[e.gerencia]) mesesObj[mesStr].gerencias[e.gerencia] = 0;
+                mesesObj[mesStr].total += e.cantidad;
+                mesesObj[mesStr].gerencias[e.gerencia] += e.cantidad;
+            });
+
+            const labelsMeses = [];
+            for(let i=12; i>0; i--) {
+                const m = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                labelsMeses.push(m.toLocaleDateString('es-AR', {year:'numeric', month:'short'}));
+            }
+
+            const dataLinea = labelsMeses.map(m => mesesObj[m] ? mesesObj[m].total : 0);
+            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{
+                label: 'Imágenes', data: dataLinea, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', fill: true, tension: 0.3
+            }]);
+
+            const arGerencias = Array.from(gerenciasUnicas);
+            const datasets12m = arGerencias.map((g, i) => {
+                const colores = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
+                return { label: g, backgroundColor: colores[i % colores.length], data: labelsMeses.map(m => (mesesObj[m] && mesesObj[m].gerencias[g]) ? mesesObj[m].gerencias[g] : 0) };
+            });
+            crearGrafico('chart-barras-12m', 'bar', labelsMeses, datasets12m, true);
+        }
+
+        function renderDetalle(dataOp) {
+            const usuSel = document.getElementById('filtro-usuario').value;
+            let kDig=0, kAudi=0, kPrep=0, kRear=0;
+            const tiempos = {}; 
+            const rankings = { dig: {}, audi: {}, prep: {}, rear: {} };
+
+            dataOp.forEach(e => {
+                const fKey = `${e.fechaObj.getFullYear()}-${String(e.fechaObj.getMonth()+1).padStart(2,'0')}-${String(e.fechaObj.getDate()).padStart(2,'0')}`;
+                if(!tiempos[fKey]) tiempos[fKey] = {dig:0, audi:0, prep:0, rear:0};
+
+                if(e.tarea === 'digitalizado') rankings.dig[e.usuario] = (rankings.dig[e.usuario] || 0) + e.cantidad;
+                if(e.tarea === 'auditado') rankings.audi[e.usuario] = (rankings.audi[e.usuario] || 0) + e.cantidad;
+                if(e.tarea === 'preparado') rankings.prep[e.usuario] = (rankings.prep[e.usuario] || 0) + e.cantidad;
+                if(e.tarea === 'rearmado') rankings.rear[e.usuario] = (rankings.rear[e.usuario] || 0) + e.cantidad;
+
+                if(usuSel === 'todos' || usuSel === e.usuario) {
+                    if(e.tarea === 'digitalizado') { kDig += e.cantidad; tiempos[fKey].dig += e.cantidad; }
+                    if(e.tarea === 'auditado') { kAudi += e.cantidad; tiempos[fKey].audi += e.cantidad; }
+                    if(e.tarea === 'preparado') { kPrep += e.cantidad; tiempos[fKey].prep += e.cantidad; }
+                    if(e.tarea === 'rearmado') { kRear += e.cantidad; tiempos[fKey].rear += e.cantidad; }
+                }
+            });
+
+            document.getElementById('det-dig').innerText = kDig.toLocaleString('es-AR');
+            document.getElementById('det-audi').innerText = kAudi.toLocaleString('es-AR');
+            document.getElementById('det-prep').innerText = kPrep.toLocaleString('es-AR');
+            document.getElementById('det-rear').innerText = kRear.toLocaleString('es-AR');
+
+            const clavesOrdenadas = Object.keys(tiempos).sort();
+            const labelsVisuales = clavesOrdenadas.map(k => { const p = k.split('-'); return `${p[2]}/${p[1]}`; });
+
+            crearGrafico('chart-lineas-tareas', 'line', labelsVisuales, [
+                {label: 'Digitalizado', data: clavesOrdenadas.map(d => tiempos[d].dig), borderColor: '#10b981', tension: 0.3},
+                {label: 'Auditado', data: clavesOrdenadas.map(d => tiempos[d].audi), borderColor: '#f59e0b', tension: 0.3},
+                {label: 'Preparado', data: clavesOrdenadas.map(d => tiempos[d].prep), borderColor: '#38bdf8', tension: 0.3},
+                {label: 'Rearmado', data: clavesOrdenadas.map(d => tiempos[d].rear), borderColor: '#8b5cf6', tension: 0.3}
+            ]);
+
+            const armarTop = (objRank, idDiv) => {
+                let html = '';
+                Object.entries(objRank).sort((a,b)=>b[1]-a[1]).slice(0, 10).forEach((item, idx) => {
+                    html += `<div class="rank-item"><span>${idx+1}. ${mapaNombres[item[0]]}</span> <span>${item[1].toLocaleString('es-AR')}</span></div>`;
+                });
+                document.getElementById(idDiv).innerHTML = html || '<div style="text-align:center;color:#64748b;font-size:0.8rem;">Sin datos</div>';
+            };
+            armarTop(rankings.dig, 'rank-dig');
+            armarTop(rankings.audi, 'rank-audi');
+            armarTop(rankings.prep, 'rank-prep');
+            armarTop(rankings.rear, 'rank-rear');
+        }
+
+        function crearGrafico(idCanvas, tipo, etiquetas, datasets, apilado = false, mostrarTotal = false) {
+            if (charts[idCanvas]) charts[idCanvas].destroy();
+            const ctx = document.getElementById(idCanvas).getContext('2d');
+            
+            const paleta = ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
+            datasets.forEach((ds, i) => { if(!ds.backgroundColor && tipo !== 'line') ds.backgroundColor = paleta.slice(0, ds.data.length); });
+
+            const conf = {
+                type: tipo, data: { labels: etiquetas, datasets: datasets },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: tipo==='doughnut'?'right':'top', labels: {color:'#94a3b8'} },
+                        datalabels: {
+                            display: tipo === 'doughnut',
+                            color: '#ffffff', font: { weight: 'bold', size: 12 },
+                            formatter: (value, ctx) => {
+                                if(tipo !== 'doughnut') return null;
+                                let sum = 0;
+                                ctx.chart.data.datasets[0].data.map(data => { sum += data; });
+                                if(value === 0 || isNaN(sum) || sum === 0) return '';
+                                return (value * 100 / sum).toFixed(1) + "%";
+                            }
+                        },
+                        tooltip: {
+                            callbacks: mostrarTotal ? {
+                                footer: function(items) {
+                                    let total = 0;
+                                    items[0].chart.data.datasets.forEach(ds => { total += (ds.data[items[0].dataIndex] || 0); });
+                                    return '\nTOTAL GENERAL: ' + total.toLocaleString('es-AR');
+                                }
+                            } : {}
+                        }
+                    }
+                }
+            };
+
+            if(tipo === 'doughnut') {
+                conf.options.cutout = '65%'; 
+                conf.options.layout = { padding: 10 };
+            } else {
+                conf.options.scales = {
+                    x: { stacked: apilado, grid: {color: '#334155'}, ticks: {color: '#94a3b8'} },
+                    y: { stacked: apilado, beginAtZero: true, grid: {color: '#334155'}, ticks: {color: '#94a3b8'} }
+                };
+            }
+            charts[idCanvas] = new Chart(ctx, conf);
+        }
+    </script>
+</body>
+</html>
