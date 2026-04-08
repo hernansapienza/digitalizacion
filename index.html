@@ -80,8 +80,6 @@
         
         .row-gerencia td { background-color: rgba(56, 189, 248, 0.1); color: var(--accent); font-weight: bold; }
         .row-area td:first-child { padding-left: 25px; color: #64748b; font-size: 0.8rem; }
-        
-        /* Alineación a la derecha para la columna de porcentaje */
         .col-pct { text-align: right; padding-right: 15px; }
 
         .ranking-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
@@ -482,11 +480,8 @@
 
             const tbody = document.querySelector('#tabla-gerencias tbody'); let htmlTabla = '';
             
-            // --- CÁLCULO DE PORCENTAJES Y DIBUJO DE FILAS ---
             Object.keys(gerenciasData).sort((a,b) => gerenciasData[b].total - gerenciasData[a].total).forEach(g => {
-                // Porcentaje Gerencia
                 let pctG = digAct > 0 ? ((gerenciasData[g].total / digAct) * 100).toFixed(1) : "0.0";
-                
                 htmlTabla += `
                     <tr class="row-gerencia">
                         <td colspan="2">${g}</td>
@@ -495,9 +490,7 @@
                     </tr>`;
                 
                 Object.keys(gerenciasData[g].areas).sort((a,b) => gerenciasData[g].areas[b] - gerenciasData[g].areas[a]).forEach(a => {
-                    // Porcentaje Área
                     let pctA = digAct > 0 ? ((gerenciasData[g].areas[a] / digAct) * 100).toFixed(1) : "0.0";
-                    
                     htmlTabla += `
                         <tr class="row-area">
                             <td>└</td>
@@ -702,20 +695,58 @@
             charts[idCanvas] = new Chart(ctx, conf);
         }
 
+        // =====================================================================
+        // TRUCO PRO: EXPORTAR CON MODO CLARO TEMPORAL
+        // =====================================================================
         function exportarJPG() {
             const btn = document.getElementById('btn-expo');
             btn.innerText = `⏳ Generando...`;
             const contenedor = document.getElementById('area-exportar-anual');
             contenedor.classList.add('export-mode');
+
+            const graficosExport = ['chart-linea-12m', 'chart-barras-12m'];
+            
+            // 1. Convertir a Modo Claro para la foto
+            graficosExport.forEach(id => {
+                if(charts[id]) {
+                    charts[id].options.scales.x.grid.color = '#f1f5f9'; // Gris ultra clarito
+                    charts[id].options.scales.y.grid.color = '#f1f5f9';
+                    charts[id].options.scales.x.ticks.color = '#64748b'; // Texto más legible
+                    charts[id].options.scales.y.ticks.color = '#64748b';
+                    charts[id].options.plugins.legend.labels.color = '#0f172a';
+                    if (charts[id].options.plugins.datalabels) {
+                        charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#0284c7' : '#475569');
+                    }
+                    charts[id].update('none'); // Update sin animación
+                }
+            });
+
+            // 2. Tomar foto y volver al Modo Oscuro
             setTimeout(() => {
                 html2canvas(contenedor, { backgroundColor: '#ffffff', scale: 3 }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = 'Reporte_Digitalizacion.jpg';
                     link.href = canvas.toDataURL('image/jpeg', 0.95); link.click();
+                    
+                    // Reversión
                     contenedor.classList.remove('export-mode');
+                    graficosExport.forEach(id => {
+                        if(charts[id]) {
+                            charts[id].options.scales.x.grid.color = '#334155'; 
+                            charts[id].options.scales.y.grid.color = '#334155';
+                            charts[id].options.scales.x.ticks.color = '#94a3b8';
+                            charts[id].options.scales.y.ticks.color = '#94a3b8';
+                            charts[id].options.plugins.legend.labels.color = '#94a3b8';
+                            if (charts[id].options.plugins.datalabels) {
+                                charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#38bdf8' : '#cbd5e1');
+                            }
+                            charts[id].update('none');
+                        }
+                    });
+                    
                     btn.innerText = `📷 Exportar a JPG (Alta Res)`;
                 });
-            }, 100);
+            }, 150);
         }
     </script>
 </body>
