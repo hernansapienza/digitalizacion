@@ -298,22 +298,27 @@
         }
 
         // =====================================================================
-        // MOTOR DE BÚSQUEDA RESTAURADO: Sigue buscando si la celda está vacía
+        // MOTOR DE BÚSQUEDA DEFINITIVO
         // =====================================================================
         function buscarValor(fila, palabrasClave, excluir = []) {
-            // 1. Búsqueda exacta
+            // 1. Búsqueda exacta: Si la columna existe, FRENA la búsqueda.
+            // Esto evita que si "rearmador" está vacía, siga buscando y encuentre "fecha_rearmado".
             for (let clave of palabrasClave) { 
-                if (fila[clave] !== undefined && fila[clave] !== "") return fila[clave]; 
+                if (fila[clave] !== undefined) {
+                    return fila[clave] === "" ? null : fila[clave]; 
+                }
             }
             // 2. Búsqueda parcial (fuzzy search)
             for (let k in fila) { 
                 for (let clave of palabrasClave) { 
-                    if (k.includes(clave) && fila[k] !== "") {
+                    if (k.includes(clave)) {
                         let bloqueado = false;
                         for (let ex of excluir) { 
                             if(k.includes(ex)) { bloqueado = true; break; } 
                         }
-                        if (!bloqueado) return fila[k];
+                        if (!bloqueado) {
+                            return fila[k] === "" ? null : fila[k];
+                        }
                     } 
                 } 
             }
@@ -391,7 +396,8 @@
                         if (cantPre > 0 && usrPre && fPre) { eventosOperadores.push({ tarea: 'preparado', usuario: usrPre, cantidad: cantPre, fechaObj: fPre }); usuariosSet.add(usrPre); }
 
                         // REARMADO
-                        let cantRea = limpiarNumero(buscarValor(fila, ['hojas_rear', 'hojas_rearmado', 'rear'], ['fecha', 'user', 'usuario', 'prep'])); 
+                        // ¡ACÁ ESTABA EL ERROR! Restauré la columna 'hojas_prep' para que encuentre la cantidad.
+                        let cantRea = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_rear', 'hojas_rearmado', 'rear'], ['fecha', 'user', 'usuario'])); 
                         let usrRea = registrarNombre(buscarValor(fila, ['rearmador', 'rear'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'rearmado') {
                             if (cantRea === 0) cantRea = limpiarNumero(buscarValor(fila, ['cantidad', 'cant'], ['fecha']));
