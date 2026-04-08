@@ -298,26 +298,22 @@
         }
 
         // =====================================================================
-        // MOTOR DE BÚSQUEDA CORREGIDO: Evita buscar si la columna está explícitamente vacía
+        // MOTOR DE BÚSQUEDA RESTAURADO: Sigue buscando si la celda está vacía
         // =====================================================================
         function buscarValor(fila, palabrasClave, excluir = []) {
-            // 1. Búsqueda exacta: Si la columna existe, la respetamos (incluso si está vacía)
+            // 1. Búsqueda exacta
             for (let clave of palabrasClave) { 
-                if (fila[clave] !== undefined) {
-                    return fila[clave] === "" ? null : fila[clave]; 
-                }
+                if (fila[clave] !== undefined && fila[clave] !== "") return fila[clave]; 
             }
             // 2. Búsqueda parcial (fuzzy search)
             for (let k in fila) { 
                 for (let clave of palabrasClave) { 
-                    if (k.includes(clave)) {
+                    if (k.includes(clave) && fila[k] !== "") {
                         let bloqueado = false;
                         for (let ex of excluir) { 
                             if(k.includes(ex)) { bloqueado = true; break; } 
                         }
-                        if (!bloqueado) {
-                            return fila[k] === "" ? null : fila[k];
-                        }
+                        if (!bloqueado) return fila[k];
                     } 
                 } 
             }
