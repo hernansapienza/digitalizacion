@@ -48,7 +48,6 @@
 
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
         
-        /* KPIs COMPACTOS Y CENTRADOS */
         .kpi-card { 
             background: var(--bg-card); 
             padding: 12px 15px; 
@@ -57,8 +56,8 @@
             display: flex; 
             flex-direction: column; 
             justify-content: center; 
-            align-items: center; /* Alineación horizontal centrada */
-            text-align: center;  /* Centrado de texto interno */
+            align-items: center; 
+            text-align: center;  
         }
         .kpi-title { font-family: 'Bitter', serif; font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
         .kpi-value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
@@ -81,6 +80,9 @@
         
         .row-gerencia td { background-color: rgba(56, 189, 248, 0.1); color: var(--accent); font-weight: bold; }
         .row-area td:first-child { padding-left: 25px; color: #64748b; font-size: 0.8rem; }
+        
+        /* Alineación a la derecha para la columna de porcentaje */
+        .col-pct { text-align: right; padding-right: 15px; }
 
         .ranking-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
         .rank-box { background: #0f172a; border-radius: 6px; padding: 15px; }
@@ -167,7 +169,13 @@
                         <h3 class="box-title">Digitalizado por Gerencia y Área</h3>
                         <div class="table-container">
                             <table id="tabla-gerencias">
-                                <thead><tr><th colspan="2">Estructura</th><th>Imágenes</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th colspan="2">Estructura</th>
+                                        <th>Imágenes</th>
+                                        <th class="col-pct">% Total</th>
+                                    </tr>
+                                </thead>
                                 <tbody></tbody>
                             </table>
                         </div>
@@ -473,10 +481,30 @@
             });
 
             const tbody = document.querySelector('#tabla-gerencias tbody'); let htmlTabla = '';
+            
+            // --- CÁLCULO DE PORCENTAJES Y DIBUJO DE FILAS ---
             Object.keys(gerenciasData).sort((a,b) => gerenciasData[b].total - gerenciasData[a].total).forEach(g => {
-                htmlTabla += `<tr class="row-gerencia"><td colspan="2">${g}</td><td>${gerenciasData[g].total.toLocaleString('es-AR')}</td></tr>`;
+                // Porcentaje Gerencia
+                let pctG = digAct > 0 ? ((gerenciasData[g].total / digAct) * 100).toFixed(1) : "0.0";
+                
+                htmlTabla += `
+                    <tr class="row-gerencia">
+                        <td colspan="2">${g}</td>
+                        <td>${gerenciasData[g].total.toLocaleString('es-AR')}</td>
+                        <td class="col-pct">${pctG}%</td>
+                    </tr>`;
+                
                 Object.keys(gerenciasData[g].areas).sort((a,b) => gerenciasData[g].areas[b] - gerenciasData[g].areas[a]).forEach(a => {
-                    htmlTabla += `<tr class="row-area"><td>└</td><td>${a}</td><td>${gerenciasData[g].areas[a].toLocaleString('es-AR')}</td></tr>`;
+                    // Porcentaje Área
+                    let pctA = digAct > 0 ? ((gerenciasData[g].areas[a] / digAct) * 100).toFixed(1) : "0.0";
+                    
+                    htmlTabla += `
+                        <tr class="row-area">
+                            <td>└</td>
+                            <td>${a}</td>
+                            <td>${gerenciasData[g].areas[a].toLocaleString('es-AR')}</td>
+                            <td class="col-pct" style="color: #64748b;">${pctA}%</td>
+                        </tr>`;
                 });
             });
             tbody.innerHTML = htmlTabla;
@@ -645,8 +673,6 @@
                 conf.data.datasets[0].borderWidth = 3;
                 conf.data.datasets[0].labels = {
                     display: true, color: '#ffffff', align: 'center',
-                    
-                    // --- NUEVA CONFIGURACIÓN DE TIPOGRAFÍA (Más chica y sin negrita) ---
                     font: (ctx) => {
                         const area = ctx.raw.v; 
                         return { family: "'Lato', sans-serif", weight: 'normal', size: area > 1000 ? 12 : 9 };
