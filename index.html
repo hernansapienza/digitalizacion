@@ -48,8 +48,18 @@
 
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
         
-        /* KPIs COMPACTOS */
-        .kpi-card { background: var(--bg-card); padding: 12px 15px; border-radius: 8px; border-top: 3px solid var(--accent); display: flex; flex-direction: column; justify-content: center; }
+        /* KPIs COMPACTOS Y CENTRADOS */
+        .kpi-card { 
+            background: var(--bg-card); 
+            padding: 12px 15px; 
+            border-radius: 8px; 
+            border-top: 3px solid var(--accent); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; /* Alineación horizontal centrada */
+            text-align: center;  /* Centrado de texto interno */
+        }
         .kpi-title { font-family: 'Bitter', serif; font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
         .kpi-value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
         .kpi-trend { font-size: 0.85rem; font-weight: 500; }
@@ -59,7 +69,6 @@
         .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         .full-width { grid-column: 1 / -1; }
         
-        /* Cajas maestras elásticas (min-height:0 evita desbordes) */
         .box { background: var(--bg-card); padding: 20px; border-radius: 8px; display: flex; flex-direction: column; min-height: 0;}
         .box-title { font-family: 'Bitter', serif; color: #cbd5e1; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px; flex-shrink: 0; font-weight: 500;}
         .chart-wrapper { flex-grow: 1; position: relative; min-height: 0; } 
@@ -68,7 +77,6 @@
         th { background: #0f172a; color: var(--accent); padding: 10px; border-bottom: 2px solid #334155; position: sticky; top: 0; font-weight: 500;}
         td { padding: 8px 10px; border-bottom: 1px solid #334155; color: #cbd5e1; }
         
-        /* SCROLL ACTIVO PARA LA TABLA */
         .table-container { flex-grow: 1; overflow-y: auto; min-height: 0; }
         
         .row-gerencia td { background-color: rgba(56, 189, 248, 0.1); color: var(--accent); font-weight: bold; }
@@ -638,9 +646,10 @@
                 conf.data.datasets[0].labels = {
                     display: true, color: '#ffffff', align: 'center',
                     
+                    // --- NUEVA CONFIGURACIÓN DE TIPOGRAFÍA (Más chica y sin negrita) ---
                     font: (ctx) => {
                         const area = ctx.raw.v; 
-                        return { family: "'Lato', sans-serif", weight: 'normal', size: area > 1000 ? 15 : 10 };
+                        return { family: "'Lato', sans-serif", weight: 'normal', size: area > 1000 ? 12 : 9 };
                     },
                     formatter: (ctx) => {
                         if (ctx.type !== 'data') return;
