@@ -277,6 +277,10 @@
             if(!nombreOriginal) return null;
             let str = String(nombreOriginal).trim();
             if(str === "" || !isNaN(str) || str.length < 3) return null;
+            
+            // Blindaje extra anti-fechas: Rechazar cualquier formato tipo 29/07/2024 o 2024-07-29
+            if (str.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/)) return null;
+
             const norm = normalizarTexto(str);
             if(!norm) return null;
             if(!mapaNombres[norm]) mapaNombres[norm] = str;
@@ -293,9 +297,30 @@
             } catch(e) { return null; }
         }
 
-        function buscarValor(fila, palabrasClave) {
-            for (let clave of palabrasClave) { if (fila[clave] !== undefined && fila[clave] !== "") return fila[clave]; }
-            for (let k in fila) { for (let clave of palabrasClave) { if (k.includes(clave) && fila[k] !== "") return fila[k]; } }
+        // =====================================================================
+        // MOTOR DE BÚSQUEDA CORREGIDO: Evita buscar si la columna está explícitamente vacía
+        // =====================================================================
+        function buscarValor(fila, palabrasClave, excluir = []) {
+            // 1. Búsqueda exacta: Si la columna existe, la respetamos (incluso si está vacía)
+            for (let clave of palabrasClave) { 
+                if (fila[clave] !== undefined) {
+                    return fila[clave] === "" ? null : fila[clave]; 
+                }
+            }
+            // 2. Búsqueda parcial (fuzzy search)
+            for (let k in fila) { 
+                for (let clave of palabrasClave) { 
+                    if (k.includes(clave)) {
+                        let bloqueado = false;
+                        for (let ex of excluir) { 
+                            if(k.includes(ex)) { bloqueado = true; break; } 
+                        }
+                        if (!bloqueado) {
+                            return fila[k] === "" ? null : fila[k];
+                        }
+                    } 
+                } 
+            }
             return null;
         }
 
@@ -333,42 +358,51 @@
                 data1.forEach(fila => {
                     try {
                         let statusGlobal = normalizarTexto(fila.status);
+                        
                         let fDig = procesarFecha(buscarValor(fila, ['fecha_digitalizado', 'fecha_dig']));
                         let fAud = procesarFecha(buscarValor(fila, ['fecha_auditado', 'fecha_aud']));
                         let fPre = procesarFecha(buscarValor(fila, ['fecha_preparado', 'fecha_prep']));
                         let fRea = procesarFecha(buscarValor(fila, ['fecha_rearmado', 'fecha_rear']));
                         let fechaComodin = fDig || fAud || fPre || fRea;
 
-                        let cantDig = limpiarNumero(buscarValor(fila, ['ima_dig', 'ima_digitalizado', 'dig']));
-                        let usrDig = registrarNombre(buscarValor(fila, ['user', 'usuario', 'digitalizador']));
+                        // DIGITALIZADO
+                        let cantDig = limpiarNumero(buscarValor(fila, ['ima_dig', 'ima_digitalizado', 'dig'], ['fecha', 'user', 'usuario', 'aud', 'prep', 'rear']));
+                        let usrDig = registrarNombre(buscarValor(fila, ['user', 'usuario', 'digitalizador', 'dig'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (!fDig && statusGlobal === 'digitalizado') fDig = fechaComodin;
+                        if (!usrDig && cantDig > 0 && fDig) { usrDig = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantDig > 0 && usrDig && fDig) { eventosOperadores.push({ tarea: 'digitalizado', usuario: usrDig, cantidad: cantDig, fechaObj: fDig }); usuariosSet.add(usrDig); }
 
-                        let cantAud = limpiarNumero(buscarValor(fila, ['ima_audi', 'ima_auditado', 'audi']));
-                        let usrAud = registrarNombre(buscarValor(fila, ['auditor', 'audi']));
+                        // AUDITADO
+                        let cantAud = limpiarNumero(buscarValor(fila, ['ima_audi', 'ima_auditado', 'audi'], ['fecha', 'user', 'usuario']));
+                        let usrAud = registrarNombre(buscarValor(fila, ['auditor', 'audi'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'auditado') {
-                            if (cantAud === 0) cantAud = cantDig || limpiarNumero(buscarValor(fila, ['cantidad', 'cant']));
-                            if (!usrAud) usrAud = usrDig || registrarNombre(buscarValor(fila, ['user'])); 
+                            if (cantAud === 0) cantAud = cantDig || limpiarNumero(buscarValor(fila, ['cantidad', 'cant'], ['fecha']));
+                            if (!usrAud) usrAud = usrDig || registrarNombre(buscarValor(fila, ['user', 'usuario'], ['fecha'])); 
                             if (!fAud) fAud = fechaComodin;
                         }
+                        if (!usrAud && cantAud > 0 && fAud) { usrAud = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantAud > 0 && usrAud && fAud) { eventosOperadores.push({ tarea: 'auditado', usuario: usrAud, cantidad: cantAud, fechaObj: fAud }); usuariosSet.add(usrAud); }
 
-                        let cantPre = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_preparado']));
-                        let usrPre = registrarNombre(buscarValor(fila, ['preparador', 'prep']));
+                        // PREPARADO
+                        let cantPre = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_preparado', 'prep'], ['fecha', 'user', 'usuario']));
+                        let usrPre = registrarNombre(buscarValor(fila, ['preparador', 'prep'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'preparado') {
-                            if (cantPre === 0) cantPre = limpiarNumero(buscarValor(fila, ['cantidad', 'cant']));
-                            if (!usrPre) usrPre = registrarNombre(buscarValor(fila, ['user']));
+                            if (cantPre === 0) cantPre = limpiarNumero(buscarValor(fila, ['cantidad', 'cant'], ['fecha']));
+                            if (!usrPre) usrPre = registrarNombre(buscarValor(fila, ['user', 'usuario'], ['fecha']));
                             if (!fPre) fPre = fechaComodin;
                         }
+                        if (!usrPre && cantPre > 0 && fPre) { usrPre = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantPre > 0 && usrPre && fPre) { eventosOperadores.push({ tarea: 'preparado', usuario: usrPre, cantidad: cantPre, fechaObj: fPre }); usuariosSet.add(usrPre); }
 
-                        let cantRea = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_rearmado'])); 
-                        let usrRea = registrarNombre(buscarValor(fila, ['rearmador', 'rear']));
+                        // REARMADO
+                        let cantRea = limpiarNumero(buscarValor(fila, ['hojas_rear', 'hojas_rearmado', 'rear'], ['fecha', 'user', 'usuario', 'prep'])); 
+                        let usrRea = registrarNombre(buscarValor(fila, ['rearmador', 'rear'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'rearmado') {
-                            if (cantRea === 0) cantRea = limpiarNumero(buscarValor(fila, ['cantidad', 'cant']));
-                            if (!usrRea) usrRea = registrarNombre(buscarValor(fila, ['user']));
+                            if (cantRea === 0) cantRea = limpiarNumero(buscarValor(fila, ['cantidad', 'cant'], ['fecha']));
+                            if (!usrRea) usrRea = registrarNombre(buscarValor(fila, ['user', 'usuario'], ['fecha']));
                             if (!fRea) fRea = fechaComodin;
                         }
+                        if (!usrRea && cantRea > 0 && fRea) { usrRea = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantRea > 0 && usrRea && fRea) { eventosOperadores.push({ tarea: 'rearmado', usuario: usrRea, cantidad: cantRea, fechaObj: fRea }); usuariosSet.add(usrRea); }
                     } catch(e) {} 
                 });
@@ -377,7 +411,7 @@
                 data2.forEach(fila => {
                     try {
                         let fObj = procesarFecha(buscarValor(fila, ['fecha_digitalizado', 'fecha']));
-                        let cant = limpiarNumero(buscarValor(fila, ['ima_dig', 'cantidad']));
+                        let cant = limpiarNumero(buscarValor(fila, ['ima_dig', 'cantidad'], ['fecha']));
                         if(fObj && cant > 0) {
                             eventosGerencias.push({
                                 fechaObj: fObj,
@@ -706,29 +740,26 @@
 
             const graficosExport = ['chart-linea-12m', 'chart-barras-12m'];
             
-            // 1. Convertir a Modo Claro para la foto
             graficosExport.forEach(id => {
                 if(charts[id]) {
-                    charts[id].options.scales.x.grid.color = '#f1f5f9'; // Gris ultra clarito
+                    charts[id].options.scales.x.grid.color = '#f1f5f9';
                     charts[id].options.scales.y.grid.color = '#f1f5f9';
-                    charts[id].options.scales.x.ticks.color = '#64748b'; // Texto más legible
+                    charts[id].options.scales.x.ticks.color = '#64748b';
                     charts[id].options.scales.y.ticks.color = '#64748b';
                     charts[id].options.plugins.legend.labels.color = '#0f172a';
                     if (charts[id].options.plugins.datalabels) {
                         charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#0284c7' : '#475569');
                     }
-                    charts[id].update('none'); // Update sin animación
+                    charts[id].update('none');
                 }
             });
 
-            // 2. Tomar foto y volver al Modo Oscuro
             setTimeout(() => {
                 html2canvas(contenedor, { backgroundColor: '#ffffff', scale: 3 }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = 'Reporte_Digitalizacion.jpg';
                     link.href = canvas.toDataURL('image/jpeg', 0.95); link.click();
                     
-                    // Reversión
                     contenedor.classList.remove('export-mode');
                     graficosExport.forEach(id => {
                         if(charts[id]) {
