@@ -114,6 +114,13 @@
         <div class="nav-link active" onclick="cambiarSeccion('seccion-mensual')">Reporte Mensual</div>
         <div class="nav-link" onclick="cambiarSeccion('seccion-anual')">Últimos 12 Meses</div>
         <div class="nav-link" onclick="cambiarSeccion('seccion-detalle')">Detalle de Producción</div>
+        
+        <div style="margin-top: auto; padding: 20px; text-align: center;">
+            <button id="btn-actualizar" onclick="forzarActualizacionBBDD()" style="background-color: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-family: inherit; width: 100%; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <span style="font-size: 1.2rem;" id="icono-sync">🔄</span> 
+                <span id="texto-sync">Sincronizar BBDD</span>
+            </button>
+        </div>
     </nav>
 
     <main>
@@ -230,10 +237,16 @@
         Chart.register(ChartDataLabels);
 
         // =====================================================================
-        // ⚠️ PEGA AQUÍ TUS ENLACES CSV
+        // ⚠️ PEGA AQUÍ TUS ENLACES CSV (Del Resumen, como venías haciendo)
         // =====================================================================
         const URL_HOJA_1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=967153503&single=true&output=csv"; 
         const URL_HOJA_2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjnc4oKgXB3wo-1OXxpAEsAfhDl3aB4SFwHioXXmsYqQE-r3RU9S7RPhap-PEaO5_vVw-LDK6FRSoP/pub?gid=161196298&single=true&output=csv";
+        // =====================================================================
+
+        // =====================================================================
+        // ⚠️ PEGA AQUÍ LA URL DE TU WEB APP DE APPS SCRIPT
+        // =====================================================================
+        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw7A_Arc3w-vmxCDCBMWhCGSLZpSAX57LWZ9I_KQc827KEz3_0qD1yzxaBKB7MiN_31/exec";
         // =====================================================================
 
         window.onerror = function(message, source, lineno, colno, error) {
@@ -278,7 +291,6 @@
             let str = String(nombreOriginal).trim();
             if(str === "" || !isNaN(str) || str.length < 3) return null;
             
-            // Blindaje extra anti-fechas: Rechazar cualquier formato tipo 29/07/2024 o 2024-07-29
             if (str.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/)) return null;
 
             const norm = normalizarTexto(str);
@@ -297,18 +309,12 @@
             } catch(e) { return null; }
         }
 
-        // =====================================================================
-        // MOTOR DE BÚSQUEDA DEFINITIVO
-        // =====================================================================
         function buscarValor(fila, palabrasClave, excluir = []) {
-            // 1. Búsqueda exacta: Si la columna existe, FRENA la búsqueda.
-            // Esto evita que si "rearmador" está vacía, siga buscando y encuentre "fecha_rearmado".
             for (let clave of palabrasClave) { 
                 if (fila[clave] !== undefined) {
                     return fila[clave] === "" ? null : fila[clave]; 
                 }
             }
-            // 2. Búsqueda parcial (fuzzy search)
             for (let k in fila) { 
                 for (let clave of palabrasClave) { 
                     if (k.includes(clave)) {
@@ -366,14 +372,12 @@
                         let fRea = procesarFecha(buscarValor(fila, ['fecha_rearmado', 'fecha_rear']));
                         let fechaComodin = fDig || fAud || fPre || fRea;
 
-                        // DIGITALIZADO
                         let cantDig = limpiarNumero(buscarValor(fila, ['ima_dig', 'ima_digitalizado', 'dig'], ['fecha', 'user', 'usuario', 'aud', 'prep', 'rear']));
                         let usrDig = registrarNombre(buscarValor(fila, ['user', 'usuario', 'digitalizador', 'dig'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (!fDig && statusGlobal === 'digitalizado') fDig = fechaComodin;
                         if (!usrDig && cantDig > 0 && fDig) { usrDig = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantDig > 0 && usrDig && fDig) { eventosOperadores.push({ tarea: 'digitalizado', usuario: usrDig, cantidad: cantDig, fechaObj: fDig }); usuariosSet.add(usrDig); }
 
-                        // AUDITADO
                         let cantAud = limpiarNumero(buscarValor(fila, ['ima_audi', 'ima_auditado', 'audi'], ['fecha', 'user', 'usuario']));
                         let usrAud = registrarNombre(buscarValor(fila, ['auditor', 'audi'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'auditado') {
@@ -384,7 +388,6 @@
                         if (!usrAud && cantAud > 0 && fAud) { usrAud = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantAud > 0 && usrAud && fAud) { eventosOperadores.push({ tarea: 'auditado', usuario: usrAud, cantidad: cantAud, fechaObj: fAud }); usuariosSet.add(usrAud); }
 
-                        // PREPARADO
                         let cantPre = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_preparado', 'prep'], ['fecha', 'user', 'usuario']));
                         let usrPre = registrarNombre(buscarValor(fila, ['preparador', 'prep'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'preparado') {
@@ -395,8 +398,6 @@
                         if (!usrPre && cantPre > 0 && fPre) { usrPre = 'sin_datos'; mapaNombres['sin_datos'] = 'Sin datos'; }
                         if (cantPre > 0 && usrPre && fPre) { eventosOperadores.push({ tarea: 'preparado', usuario: usrPre, cantidad: cantPre, fechaObj: fPre }); usuariosSet.add(usrPre); }
 
-                        // REARMADO
-                        // ¡ACÁ ESTABA EL ERROR! Restauré la columna 'hojas_prep' para que encuentre la cantidad.
                         let cantRea = limpiarNumero(buscarValor(fila, ['hojas_prep', 'hojas_rear', 'hojas_rearmado', 'rear'], ['fecha', 'user', 'usuario'])); 
                         let usrRea = registrarNombre(buscarValor(fila, ['rearmador', 'rear'], ['fecha', 'ima', 'cant', 'hoja']));
                         if (statusGlobal === 'rearmado') {
@@ -731,9 +732,6 @@
             charts[idCanvas] = new Chart(ctx, conf);
         }
 
-        // =====================================================================
-        // TRUCO PRO: EXPORTAR CON MODO CLARO TEMPORAL
-        // =====================================================================
         function exportarJPG() {
             const btn = document.getElementById('btn-expo');
             btn.innerText = `⏳ Generando...`;
@@ -780,6 +778,64 @@
                     btn.innerText = `📷 Exportar a JPG (Alta Res)`;
                 });
             }, 150);
+        }
+
+        // =====================================================================
+        // MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL CON GOOGLE APPS SCRIPT
+        // =====================================================================
+        function forzarActualizacionBBDD() {
+            if(URL_WEB_APP.includes("PÉGA_AQUÍ")) {
+                alert("Falta configurar la URL de la Web App de Apps Script en el código.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-actualizar');
+            const icono = document.getElementById('icono-sync');
+            const texto = document.getElementById('texto-sync');
+
+            // 1. Cambiamos el estado visual del botón
+            btn.style.backgroundColor = '#f59e0b'; // Naranja
+            btn.style.cursor = 'wait';
+            btn.disabled = true;
+            icono.innerText = '⏳';
+            texto.innerHTML = 'Actualizando...<br><span style="font-size:0.75rem; font-weight:normal;">Demora unos segundos</span>';
+
+            // 2. Llamamos al Apps Script
+            fetch(URL_WEB_APP)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === "ok") {
+                        // 3. Éxito: Mostramos OK y refrescamos los datos sin F5
+                        btn.style.backgroundColor = '#10b981'; // Verde
+                        icono.innerText = '✅';
+                        texto.innerHTML = '¡Actualizado!<br><span style="font-size:0.75rem; font-weight:normal;">Refrescando tablero...</span>';
+                        
+                        // Limpiamos memoria y volvemos a descargar los CSV
+                        eventosOperadores = []; eventosGerencias = []; mapaNombres = {};
+                        document.getElementById('loader').style.display = 'flex';
+                        inicializarBases(); 
+
+                        // Restauramos el botón después de 3 segundos
+                        setTimeout(() => {
+                            btn.style.backgroundColor = 'var(--success)';
+                            btn.style.cursor = 'pointer';
+                            btn.disabled = false;
+                            icono.innerText = '🔄';
+                            texto.innerText = 'Sincronizar BBDD';
+                        }, 3000);
+
+                    } else {
+                        throw new Error(data.mensaje);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al sincronizar:", error);
+                    btn.style.backgroundColor = '#ef4444'; // Rojo
+                    icono.innerText = '⚠️';
+                    texto.innerHTML = 'Error de conexión<br><span style="font-size:0.75rem; font-weight:normal;">Reintentar</span>';
+                    btn.style.cursor = 'pointer';
+                    btn.disabled = false;
+                });
         }
     </script>
 </body>
