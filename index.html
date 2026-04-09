@@ -198,7 +198,7 @@
         <div id="seccion-anual" class="section">
             <div class="content-grid" id="area-exportar-anual">
                 <div class="box full-width" style="height: 380px;">
-                    <h3 class="box-title">Digitalizado Últimos 12 Meses Completos</h3>
+                    <h3 class="box-title">Digitalizado - Últimos 12 Meses</h3>
                     <div class="chart-wrapper"><canvas id="chart-linea-12m"></canvas></div>
                 </div>
                 <div class="box full-width" style="height: 400px;">
@@ -220,9 +220,9 @@
                 <div class="kpi-card" style="border-color: var(--accent);"><div class="kpi-title">Preparado</div><div class="kpi-value" id="det-prep">0</div></div>
                 <div class="kpi-card" style="border-color: var(--purple);"><div class="kpi-title">Rearmado</div><div class="kpi-value" id="det-rear">0</div></div>
             </div>
-            <div class="box full-width" style="height: 380px; margin-bottom: 20px;"><h3 class="box-title">Evolución de Tareas en el Periodo Seleccionado</h3><div class="chart-wrapper"><canvas id="chart-lineas-tareas"></canvas></div></div>
+            <div class="box full-width" style="height: 380px; margin-bottom: 20px;"><h3 class="box-title">Evolución diaria por Tareas</h3><div class="chart-wrapper"><canvas id="chart-lineas-tareas"></canvas></div></div>
             <div class="box full-width" style="height: auto;">
-                <h3 class="box-title">Ranking de Operadores (Global del Periodo)</h3>
+                <h3 class="box-title">Ranking de Operadores por Tarea</h3>
                 <div class="ranking-grid">
                     <div class="rank-box"><div class="rank-title" style="color:var(--success)">🥇 Digitalizado</div><div id="rank-dig"></div></div>
                     <div class="rank-box"><div class="rank-title" style="color:var(--warning)">🥇 Auditado</div><div id="rank-audi"></div></div>
@@ -821,7 +821,7 @@
                             btn.style.cursor = 'pointer';
                             btn.disabled = false;
                             icono.innerText = '🔄';
-                            texto.innerText = 'Sincronizar BBDD';
+                            texto.innerText = 'Actualizar';
                         }, 3000);
 
                     } else {
