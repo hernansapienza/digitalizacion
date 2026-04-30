@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Digitalización</title>
     
+    <!-- Fuentes de Google: Lato (Principal) y Bitter (Títulos) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 
+    <!-- Librerías de Gráficos, Exportación y TREEMAP -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@3.1.0/dist/chartjs-chart-treemap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -17,9 +19,14 @@
 
     <style>
         :root {
-            --bg-dark: #0f172a; --bg-card: #1e293b; --accent: #38bdf8;
-            --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
-            --purple: #8b5cf6; --sidebar-width: 260px;
+            --bg-dark: #646363; /* Cool Gray 9 CP */
+            --bg-card: #525252; /* Gris acorde para las tarjetas */
+            --accent: #00AFE4; /* Celeste Corporativo */
+            --success: #10b981; 
+            --danger: #ef4444; 
+            --warning: #f59e0b;
+            --purple: #8b5cf6; 
+            --sidebar-width: 260px;
         }
 
         body {
@@ -28,22 +35,22 @@
             margin: 0; display: flex; height: 100vh; overflow: hidden;
         }
 
-        nav { width: var(--sidebar-width); background-color: #020617; border-right: 1px solid #1e293b; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
+        nav { width: var(--sidebar-width); background-color: #3d3c3c; border-right: 1px solid #2b2a2a; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
         
         .brand { padding: 10px 20px 30px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; }
         .brand-img { width: 85%; max-width: 180px; height: auto; }
         .brand-text { font-family: 'Bitter', serif; font-size: 1.1rem; font-weight: bold; color: var(--accent); text-transform: uppercase; line-height: 1.3; }
 
-        .nav-link { padding: 15px 20px; color: #94a3b8; text-decoration: none; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; font-weight: 500; }
-        .nav-link:hover, .nav-link.active { background-color: #1e293b; color: white; border-left-color: var(--accent); }
+        .nav-link { padding: 15px 20px; color: #cbd5e1; text-decoration: none; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; font-weight: 500; }
+        .nav-link:hover, .nav-link.active { background-color: #525252; color: white; border-left-color: var(--accent); }
 
         main { flex-grow: 1; overflow-y: auto; padding: 25px; }
         .section { display: none; }
         .section.active { display: block; animation: fadeIn 0.4s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .filter-bar { background: var(--bg-card); padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        select, input[type="date"] { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 4px; outline: none; font-family: inherit; }
+        .filter-bar { background: var(--bg-card); padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        select, input[type="date"] { background: #3d3c3c; border: 1px solid #757575; color: white; padding: 8px; border-radius: 4px; outline: none; font-family: inherit; }
         .custom-date { display: none; align-items: center; gap: 10px; }
 
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
@@ -58,8 +65,9 @@
             justify-content: center; 
             align-items: center; 
             text-align: center;  
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .kpi-title { font-family: 'Bitter', serif; font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .kpi-title { font-family: 'Bitter', serif; font-size: 0.8rem; color: #e2e8f0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
         .kpi-value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
         .kpi-trend { font-size: 0.85rem; font-weight: 500; }
         .trend-up { color: var(--success); }
@@ -68,33 +76,34 @@
         .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         .full-width { grid-column: 1 / -1; }
         
-        .box { background: var(--bg-card); padding: 20px; border-radius: 8px; display: flex; flex-direction: column; min-height: 0;}
-        .box-title { font-family: 'Bitter', serif; color: #cbd5e1; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px; flex-shrink: 0; font-weight: 500;}
+        .box { background: var(--bg-card); padding: 20px; border-radius: 8px; display: flex; flex-direction: column; min-height: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        .box-title { font-family: 'Bitter', serif; color: #f8fafc; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid #757575; padding-bottom: 10px; flex-shrink: 0; font-weight: 500;}
         .chart-wrapper { flex-grow: 1; position: relative; min-height: 0; } 
         
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-        th { background: #0f172a; color: var(--accent); padding: 10px; border-bottom: 2px solid #334155; position: sticky; top: 0; font-weight: 500;}
-        td { padding: 8px 10px; border-bottom: 1px solid #334155; color: #cbd5e1; }
+        th { background: #3d3c3c; color: var(--accent); padding: 10px; border-bottom: 2px solid #757575; position: sticky; top: 0; font-weight: 500;}
+        td { padding: 8px 10px; border-bottom: 1px solid #757575; color: #f8fafc; }
         
         .table-container { flex-grow: 1; overflow-y: auto; min-height: 0; }
         
-        .row-gerencia td { background-color: rgba(56, 189, 248, 0.1); color: var(--accent); font-weight: bold; }
-        .row-area td:first-child { padding-left: 25px; color: #64748b; font-size: 0.8rem; }
+        .row-gerencia td { background-color: rgba(0, 175, 228, 0.15); color: var(--accent); font-weight: bold; }
+        .row-area td:first-child { padding-left: 25px; color: #cbd5e1; font-size: 0.8rem; }
         .col-pct { text-align: right; padding-right: 15px; }
 
         .ranking-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        .rank-box { background: #0f172a; border-radius: 6px; padding: 15px; }
+        .rank-box { background: #3d3c3c; border-radius: 6px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
         .rank-title { font-family: 'Bitter', serif; font-size: 0.85rem; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; text-align: center; font-weight: 700;}
-        .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px dashed #334155; padding-bottom: 4px;}
-        .rank-item span:last-child { font-weight: bold; color: var(--success); }
+        .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px dashed #757575; padding-bottom: 4px;}
+        /* Modificación al color de números del ranking: Ahora usa el Celeste Corporativo */
+        .rank-item span:last-child { font-weight: bold; color: var(--accent); }
 
         #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); display:flex; justify-content:center; align-items:center; z-index:1000; font-size: 1.2rem; color: var(--accent); flex-direction: column; text-align: center; padding: 20px;}
 
-        .btn-export { background-color: var(--accent); color: #0f172a; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-export:hover { background-color: #0284c7; color: white; }
+        .btn-export { background-color: var(--accent); color: #ffffff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-export:hover { background-color: #008bbb; color: white; }
 
         .export-mode { background-color: #ffffff !important; padding: 25px !important; border-radius: 0 !important; }
-        .export-mode .box { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+        .export-mode .box { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
         .export-mode .box-title { color: #0f172a !important; border-bottom-color: #cbd5e1 !important; }
     </style>
 </head>
@@ -103,7 +112,7 @@
     <div id="loader">
         <span style="font-size: 2rem;">🔍</span><br>
         INICIANDO DIAGNÓSTICO... <br>
-        <span style="font-size:0.9rem; color:#94a3b8; margin-top:10px; display:block;" id="loader-msg">Preparando el motor...</span>
+        <span style="font-size:0.9rem; color:#e2e8f0; margin-top:10px; display:block;" id="loader-msg">Preparando el motor...</span>
     </div>
 
     <nav>
@@ -115,10 +124,11 @@
         <div class="nav-link" onclick="cambiarSeccion('seccion-anual')">Últimos 12 Meses</div>
         <div class="nav-link" onclick="cambiarSeccion('seccion-detalle')">Detalle de Producción</div>
         
+        <!-- BOTÓN DE SINCRONIZACIÓN -->
         <div style="margin-top: auto; padding: 20px; text-align: center;">
             <button id="btn-actualizar" onclick="forzarActualizacionBBDD()" style="background-color: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-family: inherit; width: 100%; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; align-items: center; gap: 5px;">
                 <span style="font-size: 1.2rem;" id="icono-sync">🔄</span> 
-                <span id="texto-sync">Actualizar</span>
+                <span id="texto-sync">Sincronizar BBDD</span>
             </button>
         </div>
     </nav>
@@ -126,7 +136,7 @@
     <main>
         <div class="filter-bar" id="barra-filtros">
             <div>
-                <label style="color:#94a3b8; font-size:0.9rem; margin-right:5px;">Periodo:</label>
+                <label style="color:#e2e8f0; font-size:0.9rem; margin-right:5px;">Periodo:</label>
                 <select id="filtro-periodo" onchange="gestionarFiltros()">
                     <option value="este_mes">Mes Actual</option>
                     <option value="mes_anterior">Mes Anterior</option>
@@ -136,11 +146,11 @@
             </div>
             <div id="fechas-personalizadas" class="custom-date">
                 <input type="date" id="fecha-desde" onchange="ejecutarMotorVisual()">
-                <span style="color:#94a3b8;">hasta</span>
+                <span style="color:#e2e8f0;">hasta</span>
                 <input type="date" id="fecha-hasta" onchange="ejecutarMotorVisual()">
             </div>
             <div id="contenedor-usuario" style="display: none; margin-left: 15px;">
-                <label style="color:#94a3b8; font-size:0.9rem; margin-right:5px;">Operador:</label>
+                <label style="color:#e2e8f0; font-size:0.9rem; margin-right:5px;">Operador:</label>
                 <select id="filtro-usuario" onchange="ejecutarMotorVisual()">
                     <option value="todos">Todos los Operadores</option>
                 </select>
@@ -154,12 +164,12 @@
                 <div style="flex: 1; min-width: 400px; display: flex; flex-direction: column; gap: 20px;">
                     <div style="display: flex; gap: 20px; height: 120px;">
                         <div class="kpi-card" style="flex: 1; border-color: var(--success); margin: 0;">
-                            <div class="kpi-title">Imágenes Generadas</div>
+                            <div class="kpi-title">Imágenes Digitalizadas</div>
                             <div class="kpi-value" id="kpi-img-total">0</div>
                             <div class="kpi-trend" id="kpi-img-trend">-</div>
                         </div>
                         <div class="kpi-card" style="flex: 1; border-color: var(--accent); margin: 0;">
-                            <div class="kpi-title">Promedio de Imágenes por Día</div>
+                            <div class="kpi-title">Promedio Diario (Días Efectivos)</div>
                             <div class="kpi-value" id="kpi-img-promedio">0</div>
                         </div>
                     </div>
@@ -198,7 +208,7 @@
         <div id="seccion-anual" class="section">
             <div class="content-grid" id="area-exportar-anual">
                 <div class="box full-width" style="height: 380px;">
-                    <h3 class="box-title">Digitalizado - Últimos 12 Meses</h3>
+                    <h3 class="box-title">Digitalizado Últimos 12 Meses Completos</h3>
                     <div class="chart-wrapper"><canvas id="chart-linea-12m"></canvas></div>
                 </div>
                 <div class="box full-width" style="height: 400px;">
@@ -220,9 +230,9 @@
                 <div class="kpi-card" style="border-color: var(--accent);"><div class="kpi-title">Preparado</div><div class="kpi-value" id="det-prep">0</div></div>
                 <div class="kpi-card" style="border-color: var(--purple);"><div class="kpi-title">Rearmado</div><div class="kpi-value" id="det-rear">0</div></div>
             </div>
-            <div class="box full-width" style="height: 380px; margin-bottom: 20px;"><h3 class="box-title">Evolución diaria por Tareas</h3><div class="chart-wrapper"><canvas id="chart-lineas-tareas"></canvas></div></div>
+            <div class="box full-width" style="height: 380px; margin-bottom: 20px;"><h3 class="box-title">Evolución de Tareas en el Periodo Seleccionado</h3><div class="chart-wrapper"><canvas id="chart-lineas-tareas"></canvas></div></div>
             <div class="box full-width" style="height: auto;">
-                <h3 class="box-title">Ranking de Operadores por Tarea</h3>
+                <h3 class="box-title">Ranking de Operadores (Global del Periodo)</h3>
                 <div class="ranking-grid">
                     <div class="rank-box"><div class="rank-title" style="color:var(--success)">🥇 Digitalizado</div><div id="rank-dig"></div></div>
                     <div class="rank-box"><div class="rank-title" style="color:var(--warning)">🥇 Auditado</div><div id="rank-audi"></div></div>
@@ -253,7 +263,7 @@
             const loader = document.getElementById('loader');
             if(loader) {
                 loader.style.color = '#ef4444';
-                loader.innerHTML = `⚠️ ERROR TÉCNICO DETECTADO<br><span style="font-size:1rem; color:#cbd5e1; margin-top:15px; display:block;">Mensaje: ${message}</span>`;
+                loader.innerHTML = `⚠️ ERROR TÉCNICO DETECTADO<br><span style="font-size:1rem; color:#f8fafc; margin-top:15px; display:block;">Mensaje: ${message}</span>`;
             }
             return true;
         };
@@ -261,8 +271,9 @@
         let eventosOperadores = []; let eventosGerencias = []; let mapaNombres = {}; let charts = {};
         let mapaColoresGlobal = {}; 
 
+        // Paleta actualizada con el celeste corporativo en primer lugar
         const paleta = [
-            '#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', 
+            '#00AFE4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', 
             '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4', '#d946ef', '#f97316', 
             '#2dd4bf', '#a855f7', '#fb7185', '#c0caf5'
         ];
@@ -272,7 +283,7 @@
         function mostrarError(mensaje, detalle = "") {
             const loader = document.getElementById('loader');
             loader.style.color = '#ef4444'; 
-            loader.innerHTML = `⚠️ ERROR DEL SISTEMA<br><span style="font-size:0.9rem; color:#cbd5e1; margin-top:10px; display:block;">${mensaje}</span>`;
+            loader.innerHTML = `⚠️ ERROR DEL SISTEMA<br><span style="font-size:0.9rem; color:#f8fafc; margin-top:10px; display:block;">${mensaje}</span>`;
         }
 
         function normalizarTexto(txt) {
@@ -533,7 +544,7 @@
                             <td>└</td>
                             <td>${a}</td>
                             <td>${gerenciasData[g].areas[a].toLocaleString('es-AR')}</td>
-                            <td class="col-pct" style="color: #64748b;">${pctA}%</td>
+                            <td class="col-pct" style="color: #cbd5e1;">${pctA}%</td>
                         </tr>`;
                 });
             });
@@ -583,7 +594,7 @@
                 const m = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
                 labelsMeses.push(m.toLocaleDateString('es-AR', {year:'numeric', month:'short'}));
             }
-            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{ label: 'Imágenes', data: labelsMeses.map(m => mesesObj[m] ? mesesObj[m].total : 0), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.2)', fill: true, tension: 0 }]);
+            crearGrafico('chart-linea-12m', 'line', labelsMeses, [{ label: 'Imágenes', data: labelsMeses.map(m => mesesObj[m] ? mesesObj[m].total : 0), borderColor: '#00AFE4', backgroundColor: 'rgba(0,175,228,0.2)', fill: true, tension: 0 }]);
             
             const arGerencias = Array.from(gerenciasUnicas).sort();
 
@@ -622,7 +633,7 @@
             crearGrafico('chart-lineas-tareas', 'line', labelsVisuales, [
                 {label: 'Digitalizado', data: clavesOrdenadas.map(d => tiempos[d].dig), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.4)', fill: true, tension: 0.3},
                 {label: 'Auditado', data: clavesOrdenadas.map(d => tiempos[d].audi), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.4)', fill: true, tension: 0.3},
-                {label: 'Preparado', data: clavesOrdenadas.map(d => tiempos[d].prep), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.4)', fill: true, tension: 0.3},
+                {label: 'Preparado', data: clavesOrdenadas.map(d => tiempos[d].prep), borderColor: '#00AFE4', backgroundColor: 'rgba(0,175,228,0.4)', fill: true, tension: 0.3},
                 {label: 'Rearmado', data: clavesOrdenadas.map(d => tiempos[d].rear), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.4)', fill: true, tension: 0.3}
             ], true);
             const armarTop = (objRank, idDiv) => {
@@ -630,7 +641,7 @@
                 Object.entries(objRank).sort((a,b)=>b[1]-a[1]).slice(0, 10).forEach((item, idx) => {
                     html += `<div class="rank-item"><span>${idx+1}. ${mapaNombres[item[0]]}</span> <span>${item[1].toLocaleString('es-AR')}</span></div>`;
                 });
-                document.getElementById(idDiv).innerHTML = html || '<div style="text-align:center;color:#64748b;font-size:0.8rem;">Sin datos</div>';
+                document.getElementById(idDiv).innerHTML = html || '<div style="text-align:center;color:#cbd5e1;font-size:0.8rem;">Sin datos</div>';
             };
             armarTop(rankings.dig, 'rank-dig'); armarTop(rankings.audi, 'rank-audi'); armarTop(rankings.prep, 'rank-prep'); armarTop(rankings.rear, 'rank-rear');
         }
@@ -653,11 +664,11 @@
                         legend: { 
                             display: (idCanvas !== 'chart-linea-12m' && tipo !== 'treemap'),
                             position: 'top', 
-                            labels: {color:'#94a3b8', font: {family: "'Lato', sans-serif"}} 
+                            labels: {color:'#e2e8f0', font: {family: "'Lato', sans-serif"}} 
                         },
                         datalabels: {
                             display: (context) => (idCanvas === 'chart-linea-12m' || (idCanvas === 'chart-barras-diarias' && context.datasetIndex === context.chart.data.datasets.length - 1)),
-                            color: (context) => (idCanvas === 'chart-linea-12m' ? '#38bdf8' : '#cbd5e1'),
+                            color: (context) => (idCanvas === 'chart-linea-12m' ? '#00AFE4' : '#f8fafc'),
                             
                             align: (context) => {
                                 if (idCanvas === 'chart-linea-12m') return 'end';
@@ -699,7 +710,7 @@
                     return mapaColoresGlobal[g] || '#cccccc';
                 };
                 
-                conf.data.datasets[0].borderColor = '#0f172a';
+                conf.data.datasets[0].borderColor = '#3d3c3c';
                 conf.data.datasets[0].borderWidth = 3;
                 conf.data.datasets[0].labels = {
                     display: true, color: '#ffffff', align: 'center',
@@ -716,13 +727,13 @@
                 };
             } else {
                 conf.options.scales = {
-                    x: { stacked: apilado, grid: {color: '#334155'}, ticks: {color: '#94a3b8', font: {family: "'Lato', sans-serif"}} },
+                    x: { stacked: apilado, grid: {color: '#757575'}, ticks: {color: '#e2e8f0', font: {family: "'Lato', sans-serif"}} },
                     y: { 
                         stacked: apilado, 
                         beginAtZero: true, 
-                        grid: {color: '#334155'}, 
+                        grid: {color: '#757575'}, 
                         ticks: {
-                            color: '#94a3b8', 
+                            color: '#e2e8f0', 
                             font: {family: "'Lato', sans-serif"},
                             precision: 0 
                         } 
@@ -746,9 +757,9 @@
                     charts[id].options.scales.y.grid.color = '#f1f5f9';
                     charts[id].options.scales.x.ticks.color = '#64748b';
                     charts[id].options.scales.y.ticks.color = '#64748b';
-                    charts[id].options.plugins.legend.labels.color = '#0f172a';
+                    charts[id].options.plugins.legend.labels.color = '#3d3c3c';
                     if (charts[id].options.plugins.datalabels) {
-                        charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#0284c7' : '#475569');
+                        charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#00AFE4' : '#475569');
                     }
                     charts[id].update('none');
                 }
@@ -763,13 +774,13 @@
                     contenedor.classList.remove('export-mode');
                     graficosExport.forEach(id => {
                         if(charts[id]) {
-                            charts[id].options.scales.x.grid.color = '#334155'; 
-                            charts[id].options.scales.y.grid.color = '#334155';
-                            charts[id].options.scales.x.ticks.color = '#94a3b8';
-                            charts[id].options.scales.y.ticks.color = '#94a3b8';
-                            charts[id].options.plugins.legend.labels.color = '#94a3b8';
+                            charts[id].options.scales.x.grid.color = '#757575'; 
+                            charts[id].options.scales.y.grid.color = '#757575';
+                            charts[id].options.scales.x.ticks.color = '#e2e8f0';
+                            charts[id].options.scales.y.ticks.color = '#e2e8f0';
+                            charts[id].options.plugins.legend.labels.color = '#e2e8f0';
                             if (charts[id].options.plugins.datalabels) {
-                                charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#38bdf8' : '#cbd5e1');
+                                charts[id].options.plugins.datalabels.color = (context) => (id === 'chart-linea-12m' ? '#00AFE4' : '#f8fafc');
                             }
                             charts[id].update('none');
                         }
@@ -793,35 +804,30 @@
             const icono = document.getElementById('icono-sync');
             const texto = document.getElementById('texto-sync');
 
-            // 1. Cambiamos el estado visual del botón
-            btn.style.backgroundColor = '#f59e0b'; // Naranja
+            btn.style.backgroundColor = 'var(--warning)'; 
             btn.style.cursor = 'wait';
             btn.disabled = true;
             icono.innerText = '⏳';
             texto.innerHTML = 'Actualizando...<br><span style="font-size:0.75rem; font-weight:normal;">Demora unos segundos</span>';
 
-            // 2. Llamamos al Apps Script
             fetch(URL_WEB_APP)
                 .then(response => response.json())
                 .then(data => {
                     if(data.status === "ok") {
-                        // 3. Éxito: Mostramos OK y refrescamos los datos sin F5
-                        btn.style.backgroundColor = '#10b981'; // Verde
+                        btn.style.backgroundColor = 'var(--success)'; 
                         icono.innerText = '✅';
                         texto.innerHTML = '¡Actualizado!<br><span style="font-size:0.75rem; font-weight:normal;">Refrescando tablero...</span>';
                         
-                        // Limpiamos memoria y volvemos a descargar los CSV
                         eventosOperadores = []; eventosGerencias = []; mapaNombres = {};
                         document.getElementById('loader').style.display = 'flex';
                         inicializarBases(); 
 
-                        // Restauramos el botón después de 3 segundos
                         setTimeout(() => {
                             btn.style.backgroundColor = 'var(--success)';
                             btn.style.cursor = 'pointer';
                             btn.disabled = false;
                             icono.innerText = '🔄';
-                            texto.innerText = 'Actualizar';
+                            texto.innerText = 'Sincronizar BBDD';
                         }, 3000);
 
                     } else {
@@ -830,7 +836,7 @@
                 })
                 .catch(error => {
                     console.error("Error al sincronizar:", error);
-                    btn.style.backgroundColor = '#ef4444'; // Rojo
+                    btn.style.backgroundColor = 'var(--danger)'; 
                     icono.innerText = '⚠️';
                     texto.innerHTML = 'Error de conexión<br><span style="font-size:0.75rem; font-weight:normal;">Reintentar</span>';
                     btn.style.cursor = 'pointer';
