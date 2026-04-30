@@ -270,28 +270,28 @@
         let eventosOperadores = []; let eventosGerencias = []; let mapaNombres = {}; let charts = {};
         let mapaColoresGlobal = {}; 
 
-        // NUEVA PALETA: 20 COLORES VIBRANTES PARA MODO OSCURO (Sin repeticiones)
+        // NUEVA PALETA: COLORES PROFUNDOS/VIVOS (Contraste perfecto para texto blanco)
         const paleta = [
             '#00AFE4', /* 1. Celeste Corporativo */
-            '#FF5252', /* 2. Rojo Coral Vivo */
-            '#69F0AE', /* 3. Verde Esmeralda Neón */
-            '#FFAB40', /* 4. Naranja Neón */
-            '#E040FB', /* 5. Púrpura Brillante */
-            '#18FFFF', /* 6. Cian Acua */
-            '#FFD740', /* 7. Amarillo Oro */
-            '#448AFF', /* 8. Azul Royal Claro */
-            '#FF4081', /* 9. Fucsia Vibrante */
-            '#B2FF59', /* 10. Verde Lima */
-            '#536DFE', /* 11. Índigo Vivo */
-            '#FF6E40', /* 12. Naranja Rojizo */
-            '#64FFDA', /* 13. Turquesa Suave */
-            '#7C4DFF', /* 14. Violeta Profundo */
-            '#FFFF00', /* 15. Amarillo Limón */
-            '#00E676', /* 16. Verde Primavera */
-            '#FF1744', /* 17. Carmesí */
-            '#00B0FF', /* 18. Azul Celeste Vivo */
-            '#F50057', /* 19. Rosa Fuerte */
-            '#1DE9B6'  /* 20. Verde Azulado */
+            '#C62828', /* 2. Rojo Fuerte Oscuro */
+            '#2E7D32', /* 3. Verde Bosque Profundo */
+            '#EF6C00', /* 4. Naranja Quemado */
+            '#4527A0', /* 5. Violeta Profundo */
+            '#00695C', /* 6. Verde Azulado Oscuro (Teal) */
+            '#D84315', /* 7. Óxido / Rojo Anaranjado */
+            '#1565C0', /* 8. Azul Fuerte */
+            '#AD1457', /* 9. Magenta Oscuro */
+            '#558B2F', /* 10. Verde Oliva Oscuro */
+            '#8D6E63', /* 11. Marrón Tierra */
+            '#0288D1', /* 12. Azul Océano */
+            '#9C27B0', /* 13. Púrpura Vivo */
+            '#00838F', /* 14. Cian Oscuro */
+            '#E65100', /* 15. Naranja Oscuro */
+            '#6A1B9A', /* 16. Uva Oscura */
+            '#4E342E', /* 17. Marrón Chocolate */
+            '#283593', /* 18. Azul Marino */
+            '#9E9D24', /* 19. Verde Musgo */
+            '#B71C1C'  /* 20. Rojo Vino */
         ];
 
         window.onload = () => inicializarBases();
@@ -684,7 +684,7 @@
                         },
                         datalabels: {
                             display: (context) => (idCanvas === 'chart-linea-12m' || (idCanvas === 'chart-barras-diarias' && context.datasetIndex === context.chart.data.datasets.length - 1)),
-                            color: (context) => (idCanvas === 'chart-linea-12m' ? '#00AFE4' : '#f8fafc'),
+                            color: (context) => (idCanvas === 'chart-linea-12m' ? '#00AFE4' : '#ffffff'),
                             
                             align: (context) => {
                                 if (idCanvas === 'chart-linea-12m') return 'end';
@@ -729,10 +729,10 @@
                 conf.data.datasets[0].borderColor = '#2a2a2a'; 
                 conf.data.datasets[0].borderWidth = 3;
                 conf.data.datasets[0].labels = {
-                    display: true, color: '#ffffff', align: 'center', /* Texto blanco resaltado */
+                    display: true, color: '#ffffff', align: 'center', /* El texto vuelve a ser blanco, ahora contrastará perfecto */
                     font: (ctx) => {
                         const area = ctx.raw.v; 
-                        return { family: "'Lato', sans-serif", weight: 'bold', size: area > 1000 ? 12 : 9 };
+                        return { family: "'Lato', sans-serif", weight: 'bold', size: area > 1000 ? 12 : 10 };
                     },
                     formatter: (ctx) => {
                         if (ctx.type !== 'data') return;
