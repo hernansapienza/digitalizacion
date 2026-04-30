@@ -270,18 +270,28 @@
         let eventosOperadores = []; let eventosGerencias = []; let mapaNombres = {}; let charts = {};
         let mapaColoresGlobal = {}; 
 
-        // NUEVA PALETA DARK-MODE PASTEL (10 colores bien diferenciados)
+        // NUEVA PALETA: 20 COLORES VIBRANTES PARA MODO OSCURO (Sin repeticiones)
         const paleta = [
-            '#8ab4f8', /* Azul Pastel */
-            '#81c995', /* Verde Menta */
-            '#fcb96b', /* Naranja Suave */
-            '#c58af9', /* Púrpura Claro */
-            '#f28b82', /* Coral / Salmón */
-            '#80cbc4', /* Cerceta / Teal */
-            '#fde293', /* Amarillo Pastel */
-            '#f48fb1', /* Rosa Suave */
-            '#b39ddb', /* Lavanda */
-            '#e6ee9c'  /* Verde Limón Suave */
+            '#00AFE4', /* 1. Celeste Corporativo */
+            '#FF5252', /* 2. Rojo Coral Vivo */
+            '#69F0AE', /* 3. Verde Esmeralda Neón */
+            '#FFAB40', /* 4. Naranja Neón */
+            '#E040FB', /* 5. Púrpura Brillante */
+            '#18FFFF', /* 6. Cian Acua */
+            '#FFD740', /* 7. Amarillo Oro */
+            '#448AFF', /* 8. Azul Royal Claro */
+            '#FF4081', /* 9. Fucsia Vibrante */
+            '#B2FF59', /* 10. Verde Lima */
+            '#536DFE', /* 11. Índigo Vivo */
+            '#FF6E40', /* 12. Naranja Rojizo */
+            '#64FFDA', /* 13. Turquesa Suave */
+            '#7C4DFF', /* 14. Violeta Profundo */
+            '#FFFF00', /* 15. Amarillo Limón */
+            '#00E676', /* 16. Verde Primavera */
+            '#FF1744', /* 17. Carmesí */
+            '#00B0FF', /* 18. Azul Celeste Vivo */
+            '#F50057', /* 19. Rosa Fuerte */
+            '#1DE9B6'  /* 20. Verde Azulado */
         ];
 
         window.onload = () => inicializarBases();
@@ -719,7 +729,7 @@
                 conf.data.datasets[0].borderColor = '#2a2a2a'; 
                 conf.data.datasets[0].borderWidth = 3;
                 conf.data.datasets[0].labels = {
-                    display: true, color: '#121212', align: 'center', /* Texto en negro para resaltar sobre los tonos pastel */
+                    display: true, color: '#ffffff', align: 'center', /* Texto blanco resaltado */
                     font: (ctx) => {
                         const area = ctx.raw.v; 
                         return { family: "'Lato', sans-serif", weight: 'bold', size: area > 1000 ? 12 : 9 };
