@@ -35,7 +35,6 @@
             margin: 0; display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* Menú lateral casi negro puro */
         nav { width: var(--sidebar-width); background-color: #121212; border-right: 1px solid #1f1f1f; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
         
         .brand { padding: 10px 20px 30px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; }
@@ -271,10 +270,18 @@
         let eventosOperadores = []; let eventosGerencias = []; let mapaNombres = {}; let charts = {};
         let mapaColoresGlobal = {}; 
 
+        // NUEVA PALETA DARK-MODE PASTEL (10 colores bien diferenciados)
         const paleta = [
-            '#00AFE4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', 
-            '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4', '#d946ef', '#f97316', 
-            '#2dd4bf', '#a855f7', '#fb7185', '#c0caf5'
+            '#8ab4f8', /* Azul Pastel */
+            '#81c995', /* Verde Menta */
+            '#fcb96b', /* Naranja Suave */
+            '#c58af9', /* Púrpura Claro */
+            '#f28b82', /* Coral / Salmón */
+            '#80cbc4', /* Cerceta / Teal */
+            '#fde293', /* Amarillo Pastel */
+            '#f48fb1', /* Rosa Suave */
+            '#b39ddb', /* Lavanda */
+            '#e6ee9c'  /* Verde Limón Suave */
         ];
 
         window.onload = () => inicializarBases();
@@ -709,13 +716,13 @@
                     return mapaColoresGlobal[g] || '#cccccc';
                 };
                 
-                conf.data.datasets[0].borderColor = '#2a2a2a'; /* Borde interno acorde a la tarjeta */
+                conf.data.datasets[0].borderColor = '#2a2a2a'; 
                 conf.data.datasets[0].borderWidth = 3;
                 conf.data.datasets[0].labels = {
-                    display: true, color: '#ffffff', align: 'center',
+                    display: true, color: '#121212', align: 'center', /* Texto en negro para resaltar sobre los tonos pastel */
                     font: (ctx) => {
                         const area = ctx.raw.v; 
-                        return { family: "'Lato', sans-serif", weight: 'normal', size: area > 1000 ? 12 : 9 };
+                        return { family: "'Lato', sans-serif", weight: 'bold', size: area > 1000 ? 12 : 9 };
                     },
                     formatter: (ctx) => {
                         if (ctx.type !== 'data') return;
